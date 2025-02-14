@@ -2,7 +2,11 @@
 """
 Created on Tue Jul 23 12:09:08 2019
 
-Barlow Twins
+Barlow Twins.
+This code is based on the following repositories:
+
+- [origin](https://github.com/facebookresearch/barlowtwins)  
+- [simple version](https://github.com/MaxLikesMath/Barlow-Twins-Pytorch/tree/main)  
 
 models file
 

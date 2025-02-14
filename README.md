@@ -1,8 +1,5 @@
-# ihbt
-a repository for in-house BarlowTwins implementation based on the followings:  
-- [origin](https://github.com/facebookresearch/barlowtwins)  
-- [simple version](https://github.com/MaxLikesMath/Barlow-Twins-Pytorch/tree/main)  
-- [original source for sample dataset](https://pytorch.org/tutorials/beginner/data_loading_tutorial.html?highlight=dataloader)  
+# phtwins
+a package for extracting point cloud and histogram based representations.  
 
 # Note
 This repository is under construction and will be officially released by [Mizuno group](https://github.com/mizuno-group).  
@@ -21,12 +18,12 @@ Please contact tadahaya[at]gmail.com before publishing your paper using the cont
     │  
     ├── data                <- a sample data and config file  
     │  
-    └── ihbt               <- Source code for use in this project  
+    └── phtwins               <- Source code for use in this project  
         ├── __init__.py     <- Makes src a Python module  
         │  
         ├── main.py         <- main CLI for this module  
         │  
-        ├── ihbt.py         <- a Python module  
+        ├── core.py         <- a Python module  
         │  
         └── src             <- src for this module  
 
