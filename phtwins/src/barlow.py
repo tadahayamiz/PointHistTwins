@@ -2,70 +2,19 @@
 """
 Created on Tue Jul 23 12:09:08 2019
 
-Barlow Twins.
+Point-Histogram Twins, inspired from Barlow Twins
 This code is based on the following repositories:
 
 - [origin](https://github.com/facebookresearch/barlowtwins)  
 - [simple version](https://github.com/MaxLikesMath/Barlow-Twins-Pytorch/tree/main)  
-
-models file
 
 @author: tadahaya
 """
 import torch
 import torch.nn as nn
 
-def flatten(t):
-    return t.reshape(t.shape[0], -1)
-
-
-class NetWrapper(nn.Module):
-    """ inspired by https://github.com/lucidrains/byol-pytorch """
-    def __init__(self, net, layer=-2):
-        super().__init__()
-        self.net = net
-        self.layer = layer
-        self.hidden = None
-        self.hook_registered = False
-
-
-    def _find_layer(self):
-        if type(self.layer)==str: # 名称で取得
-            modules = dict([*self.net.named_modules()])
-            return modules.get(self.layer, None)
-        elif type(self.layer)==int: # indexで取得
-            children = [*self.net.children()]
-            return children[self.layer]
-        return None
-
-
-    def _hook(self, _, __, output): # hookでflattenする
-        self.hidden = flatten(output)
-
-
-    def _register_hook(self):
-        layer = self._find_layer()
-        assert layer is not None, f"!! Hidden layer ({self.layer}) not found !!"
-        handle = layer.register_forward_hook(self._hook)
-        self.hook_registered = True
-
-
-    def get_representation(self, x):
-        if self.layer==-1:
-            return self.net(x)
-        if not self.hook_registered:
-            self._register_hook()
-        _ = self.net(x)
-        hidden = self.hidden
-        self.hidden = None # self.hiddenを初期化している
-        assert hidden is not None, f"!! Hidden layer ({self.layer}) never emitted an output !!"
-        return hidden
-
-
-    def forward(self, x):
-        representation = self.get_representation(x)
-        return representation
-
+from .models.hist_encoder import HistEncoder
+from .models.point_encoder import PointEncoder
 
 def off_diagonal(x):
     """ return a flattened view of the off-diagonal elements of a square matrix """
@@ -79,42 +28,48 @@ class BarlowTwins(nn.Module):
     single GPU version based on https://github.com/facebookresearch/barlowtwins
 
     """
-    def __init__(self, backbone, latent_id, projection_sizes, lambd, scale_factor=1):
+    def __init__(self, latent_dim, hidden_proj, output_proj, num_proj=2, lambd=0.005, scale_factor=1):
         """
         Parameters
         ----------
-        backbone: Model
+        latent_dim: dimension of latent representation from encoders
 
-        latent_id: name or index of the layer to be fed to the projection
+        hidden_proj: dimension of hidden layer
 
-        projection_sizes: size of the hidden layers in the projection
+        output_proj: dimension of output data
 
+        num_proj: number of projection layers
+        
         lambd: tradeoff function
 
         scale_factor: factor to scale loss by
 
         """
         super().__init__()
-        self.backbone = backbone
-        self.backbone = NetWrapper(self.backbone, latent_id)
-        self.lambd = lambd
-        self.scale_factor = scale_factor
+        # encoder
+        self.point_encoder = PointEncoder()
+        self.hist_encoder = HistEncoder()
         # projector
-        sizes = projection_sizes
         layers = []
-        for i in range(len(sizes) - 2):
-            layers.append(nn.Linear(sizes[i], sizes[i + 1], bias=False)) # BatchNorm入れるのでbias=False
-            layers.append(nn.BatchNorm1d(sizes[i + 1]))
+        in_features = latent_dim
+        for i in range(num_proj):
+            layers.append(nn.Linear(in_features, hidden_proj, bias=False)) # bias=False, due to BN
+            layers.append(nn.BatchNorm1d(hidden_proj))
             layers.append(nn.ReLU(inplace=True))
-        layers.append(nn.Linear(sizes[-2], sizes[-1], bias=False)) # BatchNorm入れるのでbias=False
+            in_features = hidden_proj
+        layers.append(nn.Linear(hidden_proj, output_proj, bias=False)) # bias=False, due to BN
         self.projector = nn.Sequential(*layers)
         # normalization layer for z1 and z2
-        self.bn = nn.BatchNorm1d(sizes[-1], affine=False)
+        self.bn = nn.BatchNorm1d(output_proj, affine=False) # no learnable parameters
+        self.lambd = lambd
+        self.scale_factor = scale_factor
 
 
-    def forward(self, y1, y2): # 2つの画像を入力
-        z1 = self.backbone(y1)
-        z2 = self.backbone(y2)
+    def forward(self, point, hist): # input two views
+        # encode views
+        z1, weight = self.point_encoder(point) # returns embedding and attention weights
+        z2 = self.hist_encoder(hist)
+        # project representations
         z1 = self.projector(z1)
         z2 = self.projector(z2)
         # empirical cross-correlation matrix
@@ -125,17 +80,58 @@ class BarlowTwins(nn.Module):
         off_diag = off_diagonal(c).pow_(2).sum()
         loss = self.scale_factor * (on_diag + self.lambd * off_diag)
         return loss
-    
+        
+class FeatureExtractor(nn.Module):
+    def __init__(self, twins, frozen:bool=False):
+        super().__init__()
+        if frozen:
+            for param in twins.parameters():
+                param.requires_grad = False
+        self.model = twins
+
+    def forward(self, point, hist):
+        z1 = self.model.point_encoder(point)
+        z2 = self.model.hist_encoder(hist)
+        return torch.cat([z1, z2], dim=1)  # concatenate two features
+
 
 class LinearHead(nn.Module):
-    def __init__(self, backbone, num_classes:int):
-        super().__init__()
-        self.backbone = backbone
-        self.fc = nn.Linear(backbone.fc.in_features, num_classes)
+    def __init__(
+            self, pretrained, latent_dim:int, num_classes:int, num_layers:int=2,
+            hidden_head:int=512, dropout_head:float=0.3, frozen:bool=False
+            ):
+        """
+        Parameters
+        ----------
+        pretrained: pre-trained model
 
-    
+        latent_dim: dimension of the representation
+
+        num_classes: number of classes
+
+        num_layers: number of layers in MLP
+
+        hidden_head: number of hidden units in MLP
+            int or list of int
+
+        dropout_head: dropout rate
+
+        """
+        super().__init__()
+        self.model = FeatureExtractor(pretrained, frozen=frozen)
+        # MLP
+        layers = []
+        if isinstance(hidden_head, int):
+            hidden_head = [hidden_head] * num_layers
+        in_features = latent_dim
+        for i in range(num_layers):
+            layers.append(nn.Linear(in_features, hidden_head[i]))
+            layers.append(nn.ReLU(inplace=True))
+            layers.append(nn.Dropout(dropout_head))
+            in_features = hidden_head[i]
+        layers.append(nn.Linear(hidden_head[i], num_classes))  # output layer
+        self.linear_head = nn.Sequential(*layers)
+
     def forward(self, x):
-        out = self.backbone(x)
-        out = torch.flatten(out, 1)
-        out = self.fc(out)
-        return out
+        x = self.model(x)
+        return self.linear_head(x)

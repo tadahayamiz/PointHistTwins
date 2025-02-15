@@ -1,18 +1,42 @@
-# invit config file (yaml)
-patch_size: 4 # Input image size: 32x32 -> 8x8 patches
-hidden_size: 48
-num_hidden_layers: 4
-num_attention_heads: 4
-intermediate_size: 192 # 4 * hidden_size
-hidden_dropout_prob: 0.0
-attention_probs_dropout_prob: 0.0 
-initializer_range: 0.02 
-image_size: 32
-num_classes: 10 # num_classes of CIFAR10
-num_channels: 3
-qkv_bias: true
-use_faster_attention: true
+# phtwins config file (yaml)
+# === I/O ===
+config_path: null
+device: null
+outdir: null
+exp_name: null
+# === Data ===
+num_points: 768
+bins: 16
+num_workers: 4
+pin_memory: True
+# === Barlow Twins ===
+latent_dim: 128
+hidden_proj: 512
+output_proj: 128
+num_proj: 2
+lambd: 0.005
+scale_factor: 1.0
+# === PointEncoder ===
+input_dim: 2
+hidden_mlp: 32
+# output_mlp: 128 # this is the same as latent_dim
+dropout_mlp: 0.5
+hidden_attn: 64
+dropout_attn: 0.3
+# === HistEncoder ===
+hidden_hist: 64
+# output_hist: 128 # this is the same as latent_dim
+dropout_hist: 0.3
+# === Linear head ===
+# latent_dim: 128
+num_classes: 10
+num_layers: 2
+hidden_head: 512
+dropout_head: 0.3
+frozen: False
+# === Training ===
 batch_size: 256
 epochs: 100
-lr: 0.01
+lr: 1e-3
+weight_decay: 1e-3
 save_model_every: 0
