@@ -6,96 +6,104 @@ utils
 
 @author: tadahaya
 """
-import json, os, math
+import json, os
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
-from torch.nn import functional as F
-import torchvision
-import torchvision.transforms as transforms
 
-from .models import VitForClassification
 
-def save_experiment(
-        experiment_name, config, model, train_losses, test_losses,
-        accuracies, classes, base_dir=""
-        ):
-    """ save the experiment: config, model, metrics, and progress plot """
-    if len(base_dir) == 0:
-        base_dir = os.path.dirname(config["config_path"])
-    outdir = os.path.join(base_dir, experiment_name)
-    os.makedirs(outdir, exist_ok=True)
-
+def save_experiment(model, config, history, plot_progress=True):
+    """
+    save the experiment: config, model, metrics, and progress plot
+    
+    outdir
+    ├── experiment_name
+        ├── config.json
+        ├── history.json
+        ├── progress_loss.tif
+        ├── model_final.pt
+        ├── model_1.pt
+        ├── model_2.pt
+        ├── ...
+    
+    """
+    outdir = config["outdir"]
+    experiment_name = config["experiment_name"]
+    resdir = os.path.join(outdir, experiment_name)
+    os.makedirs(resdir, exist_ok=True)
     # save config
-    configfile = os.path.join(outdir, 'config.json')
+    configfile = os.path.join(resdir, 'config.json')
     with open(configfile, 'w') as f:
         json.dump(config, f, sort_keys=True, indent=4)
-    
-    # save metrics
-    jsonfile = os.path.join(outdir, 'metrics.json')
-    with open(jsonfile, 'w') as f:
-        data = {
-            'train_losses': train_losses,
-            'test_losses': test_losses,
-            'accuracies': accuracies,
-            'classes': classes,
-        }
-        json.dump(data, f, sort_keys=True, indent=4)
-
+    # save history
+    historyfile = os.path.join(resdir, 'history.json')
+    with open(historyfile, 'w') as f:
+        json.dump(history, f, sort_keys=True, indent=4)
+    # save the model
+    save_checkpoint(model=model, name="final", outdir=outdir)
     # plot progress
-    plot_progress(
-        experiment_name, train_losses, test_losses, config["epochs"], base_dir=base_dir
+    if plot_progress:
+        progress_plot(
+            outdir=resdir,
+            train_values=history["train_loss"],
+            test_values=history["test_loss"]
         )
 
-    # save the model
-    save_checkpoint(experiment_name, model, "final", base_dir=base_dir)
 
-
-def save_checkpoint(experiment_name, model, epoch, base_dir="experiments"):
-    outdir = os.path.join(base_dir, experiment_name)
-    os.makedirs(outdir, exist_ok=True)
-    cpfile = os.path.join(outdir, f"model_{epoch}.pt")
+def save_checkpoint(model, name, outdir):
+    """
+    save the model checkpoint
+    
+    """
+    cpfile = os.path.join(outdir, f"model_{name}.pt")
     torch.save(model.state_dict(), cpfile)
 
 
-def load_experiments(
-        experiment_name, checkpoint_name="model_final.pt", base_dir="experiments"
-        ):
-    outdir = os.path.join(base_dir, experiment_name)
+def load_experiments(init_model, resdir, checkpoint_name="model_final"):
+    """
+    load the experiment
+
+    Parameters
+    ----------
+    init_model: nn.Module
+        initialized model
+
+    resdir: str
+        the result directory
+    
+    checkpoint_name: str
+        the checkpoint name, like model_final
+    
+    """
     # load config
-    configfile = os.path.join(outdir, "config.json")
+    configfile = os.path.join(resdir, "config.json")
     with open(configfile, 'r') as f:
         config = json.load(f)
-    # load metrics
-    jsonfile = os.path.join(outdir, 'metrics.json')
-    with open(jsonfile, 'r') as f:
-        data = json.load(f)
-    train_losses = data["train_losses"]
-    test_losses = data["test_losses"]
-    accuracies = data["accuracies"]
-    classes = data["classes"]
+    # load history
+    historyfile = os.path.join(resdir, 'hisotry.json')
+    with open(historyfile, 'r') as f:
+        history = json.load(f)
     # load model
-    model = VitForClassification(config)
-    cpfile = os.path.join(outdir, checkpoint_name)
+    model = init_model(config)
+    cpfile = os.path.join(resdir, checkpoint_name)
     model.load_state_dict(torch.load(cpfile)) # checkpointを読み込んでから
-    return config, model, train_losses, test_losses, accuracies, classes
+    return model, config, history
 
 
-def plot_progress(
-        experiment_name:str, train_loss:list, test_loss:list, num_epoch:int,
-        base_dir:str="experiments", xlabel="epoch", ylabel="loss"
+def progress_plot(
+        outdir:str, train_values:list, test_values:list=[],
+        xlabel="epoch", ylabel="loss"
         ):
     """ plot learning progress """
-    outdir = os.path.join(base_dir, experiment_name)
-    os.makedirs(outdir, exist_ok=True)
-    epochs = list(range(1, num_epoch + 1, 1))
+    fileout = os.path.join(outdir, f"progress_{ylabel}.tif")
+    x = list(range(1, len(train_values) + 1, 1))
     fig, ax = plt.subplots()
     plt.rcParams['font.size'] = 14
-    ax.plot(epochs, train_loss, c='navy', label='train')
-    ax.plot(epochs, test_loss, c='darkgoldenrod', label='test')
+    ax.plot(x, train_values, c='navy', label='train')
+    if len(test_values) > 0:
+        ax.plot(x, test_values, c='darkgoldenrod', label='test')
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.grid()
     ax.legend()
     plt.tight_layout()
-    plt.savefig(outdir + f'/progress_{ylabel}.tif', dpi=300, bbox_inches='tight')
+    plt.savefig(fileout, dpi=300, bbox_inches='tight')
