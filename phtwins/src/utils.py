@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import torch
 
 
-def save_experiment(model, config, history, plot_progress=True):
+def save_experiment(config, model, history, plot_progress=True):
     """
     save the experiment: config, model, metrics, and progress plot
     

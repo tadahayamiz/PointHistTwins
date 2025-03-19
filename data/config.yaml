@@ -34,6 +34,7 @@ num_layers: 2
 hidden_head: 512
 dropout_head: 0.3
 frozen: False
+use_pretrain_loss: False
 # === Training ===
 batch_size: 256
 epochs: 100

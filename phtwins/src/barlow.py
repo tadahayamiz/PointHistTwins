@@ -65,21 +65,22 @@ class BarlowTwins(nn.Module):
         self.scale_factor = scale_factor
 
 
-    def forward(self, point, hist): # input two views
+    def forward(self, point, hist):  # input two views
         # encode views
-        z1, weight = self.point_encoder(point) # returns embedding and attention weights
+        z1, weight = self.point_encoder(point)  # returns embedding and attention weights
         z2 = self.hist_encoder(hist)
         # project representations
         z1 = self.projector(z1)
         z2 = self.projector(z2)
+        batch_size = z1.shape[0]
         # empirical cross-correlation matrix
-        c = torch.mm(self.bn(z1).T, self.bn(z2))
-        c.div_(z1.shape[0])
+        c = torch.mm(self.bn(z1).T, self.bn(z2)) / batch_size
         # scaling
-        on_diag = torch.diagonal(c).add_(-1).pow_(2).sum()
-        off_diag = off_diagonal(c).pow_(2).sum()
+        on_diag = torch.diagonal(c).add_(-1).pow_(2).sum() / batch_size
+        off_diag = off_diagonal(c).pow_(2).sum() / (batch_size * (batch_size - 1))  # off-diagonal
         loss = self.scale_factor * (on_diag + self.lambd * off_diag)
-        return loss
+        return (z1, z2), loss
+
         
 class FeatureExtractor(nn.Module):
     def __init__(self, twins, frozen:bool=False):
@@ -89,10 +90,10 @@ class FeatureExtractor(nn.Module):
                 param.requires_grad = False
         self.model = twins
 
+
     def forward(self, point, hist):
-        z1 = self.model.point_encoder(point)
-        z2 = self.model.hist_encoder(hist)
-        return torch.cat([z1, z2], dim=1)  # concatenate two features
+        (z1, z2), loss = self.model(point, hist)
+        return torch.cat([z1, z2], dim=1), loss  # concatenate two features
 
 
 class LinearHead(nn.Module):
@@ -132,6 +133,7 @@ class LinearHead(nn.Module):
         layers.append(nn.Linear(hidden_head[i], num_classes))  # output layer
         self.linear_head = nn.Sequential(*layers)
 
-    def forward(self, x):
-        x = self.model(x)
-        return self.linear_head(x)
+
+    def forward(self, point, hist):
+        output, bt_loss = self.model(point, hist) # feature extraction
+        return self.linear_head(output), bt_loss # classification
