@@ -127,7 +127,6 @@ class PHTwins:
         return np.concatenate(preds), np.concatenate(probs)
 
 
-    # ToDo: implement this
     def get_representation(self, data_loader=None):
         """
         get representation
@@ -143,7 +142,8 @@ class PHTwins:
         with torch.no_grad():
             for data, _ in data_loader:
                 point, hist = (x.to(self.device) for x in data)
-                output, _ = self.pretrained_model(point, hist) # ToDo: check this
+                (z1, z2), _ = self.pretrained_model(point, hist)
+                output = (z1 + z2) / 2 # average two features
                 reps.append(output.cpu().numpy())
         return np.concatenate(reps)
 
@@ -154,7 +154,6 @@ class PHTwins:
         raise NotImplementedError("!! Not implemented yet !!")
     
 
-    # ToDo: implement this
     def load_pretrained(self, model_path: str, config_path: str=None):
         """ load pretrained model """
         if config_path is not None:
@@ -162,7 +161,7 @@ class PHTwins:
                 self.config = yaml.safe_load(f)
             self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
             self.config["config_path"] = config_path
-        self.pretrained = BarlowTwins(
+        self.pretrained_model = BarlowTwins(
             self.config["latent_dim"], # the dimension of the latent representation
             self.config["hidden_dim"], # the dimension of the hidden layer
             self.config["output_dim"], # the dimension of the output layer
@@ -170,10 +169,9 @@ class PHTwins:
             self.config["lambd"], # tradeoff parameter
             self.config["scale_factor"] # factor to scale the loss by
         )
-        self.pretrained.load_state_dict(torch.load(model_path))
+        self.pretrained_model.load_state_dict(torch.load(model_path))
 
 
-    # ToDo: implement this
     def load_finetuned(self, model_path: str, config_path: str=None):
         """ load model with linear head """
         if config_path is not None:
@@ -181,7 +179,16 @@ class PHTwins:
                 self.config = yaml.safe_load(f)
             self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
             self.config["config_path"] = config_path
-        self.finetuned = LinearHead(
+        init_bt_model = BarlowTwins(
+            self.config["latent_dim"], # the dimension of the latent representation
+            self.config["hidden_proj"], # the dimension of the hidden layer
+            self.config["output_proj"], # the dimension of the output layer
+            self.config["num_proj"], # the number of the projection MLPs
+            self.config["lambd"], # tradeoff parameter
+            self.config["scale_factor"] # factor to scale the loss by
+        )
+        self.finetuned_model = LinearHead(
+            init_bt_model, # initialized model
             self.config["latent_dim"], # the dimension of the latent representation
             self.config["num_classes"], # the number of classes
             self.config["num_layers"], # the number of layers in the MLP
@@ -189,4 +196,4 @@ class PHTwins:
             self.config["dropout_head"], # the dropout rate
             self.config["frozen"] # whether the pretrained model is frozen
         )
-        self.finetuned.load_state_dict(torch.load(model_path))
+        self.finetuned_model.load_state_dict(torch.load(model_path))
