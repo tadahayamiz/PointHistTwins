@@ -2,7 +2,10 @@
 """
 Created on Tue Jul 23 12:09:08 2019
 
-ihvit module
+core module
+
+note 250320
+- which is better to use: self.model or self.pretrained/self.finetuned?
 
 @author: tadahaya
 """
@@ -58,11 +61,10 @@ class PHTwins:
             return train_loader, test_loader
 
 
-    # ToDo: implement this
-    def pretrain(self, train_loader, test_loader, classes=None):
-        """ training """
+    def pretrain(self, train_loader, test_loader):
+        """ pretraining """
         # prepare model
-        self.pretrained = BarlowTwins(
+        self.pretrained_model = BarlowTwins(
             self.config["latent_dim"], # the dimension of the latent representation
             self.config["hidden_proj"], # the dimension of the hidden layer
             self.config["output_proj"], # the dimension of the output layer
@@ -70,46 +72,50 @@ class PHTwins:
             self.config["lambd"], # tradeoff parameter
             self.config["scale_factor"] # factor to scale the loss by
         )
-        optimizer = optim.AdamW(self.model.parameters(), lr=self.config["lr"], weight_decay=self.config["weight_decay"])
-        loss_fn = nn.CrossEntropyLoss()
-        trainer = Trainer(
-            self.config, self.model, optimizer, loss_fn, self.config["exp_name"], device=self.config["device"]
+        optimizer = optim.AdamW(
+            self.pretrained_model.parameters(), lr=self.config["lr"], weight_decay=self.config["weight_decay"]
+            )
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.config["epochs"])
+        trainer = PreTrainer(
+            self.config, self.pretrained_model, optimizer, scheduler=scheduler, device=self.config["device"]
             )
         # training
-        trainer.train(
-            train_loader, test_loader, classes, save_model_evry_n_epochs=self.config["save_model_every"]
+        trainer.train(train_loader, test_loader)
+        print("> Pretraining is done.")
+
+
+    def finetune(self, train_loader, test_loader):
+        """ finetuning """
+        # prepare model
+        self.finetuned_model = LinearHead(
+            self.pretrained_model, # the pre-trained model
+            self.config["latent_dim"], # the dimension of the latent representation
+            self.config["num_classes"], # the number of classes
+            self.config["num_layers"], # the number of layers in the MLP
+            self.config["hidden_head"], # the number of hidden units in the MLP
+            self.config["dropout_head"], # the dropout rate
+            self.config["frozen"] # whether the pretrained model is frozen
+        )
+        loss_fn = nn.CrossEntropyLoss()
+        optimizer = optim.AdamW(
+            self.finetuned_model.parameters(), lr=self.config["lr"], weight_decay=self.config["weight_decay"]
             )
-        if self.input_path2 is None:
-            accuracy, avg_loss = trainer.evaluate(test_loader)
-            print(f"Accuracy: {accuracy} // Average Loss: {avg_loss}")
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.config["epochs"])
+        trainer = Trainer(
+            self.config, self.finetuned_model, loss_fn, optimizer, scheduler, self.config["device"]
+            )
+        # training
+        trainer.train(train_loader, test_loader)
 
 
     # ToDo: implement this
-    def finetune(self, train_loader, test_loader, classes=None):
-        """ training """
-        # モデル等の準備
-        self.model = VitForClassification(self.config)
-        optimizer = optim.AdamW(self.model.parameters(), lr=self.config["lr"], weight_decay=1e-2)
-        loss_fn = nn.CrossEntropyLoss()
-        trainer = Trainer(
-            self.config, self.model, optimizer, loss_fn, self.config["exp_name"], device=self.config["device"]
-            )
-        # training
-        trainer.train(
-            train_loader, test_loader, classes, save_model_evry_n_epochs=self.config["save_model_every"]
-            )
-        if self.input_path2 is None:
-            accuracy, avg_loss = trainer.evaluate(test_loader)
-            print(f"Accuracy: {accuracy} // Average Loss: {avg_loss}")
-
-
     def predict(self, data_loader=None):
         """ prediction """
         if data_loader is None:
             raise ValueError("!! Give data_loader !!")
         if self.model is None:
             raise ValueError("!! fit or load_model first !!")
-        self.model.eval()
+        self.finetuned_model.eval()
         preds = []
         probs = []
         with torch.no_grad():
@@ -121,28 +127,34 @@ class PHTwins:
         return np.concatenate(preds), np.concatenate(probs)
 
 
+    # ToDo: implement this
     def get_representation(self, data_loader=None):
-        """ get representation """
+        """
+        get representation
+        note: pretrained model weight is changed after finetuning.
+        
+        """
         if data_loader is None:
             raise ValueError("!! Give data_loader !!")
-        if self.model is None:
+        if self.pretrained_model is None:
             raise ValueError("!! fit or load_model first !!")
-        self.model.eval()
+        self.pretrained_model.eval()
         reps = []
         with torch.no_grad():
             for data, _ in data_loader:
-                data = data.to(self.config["device"])
-                output = self.model(data)[1]# ToDo: check this
+                point, hist = (x.to(self.device) for x in data)
+                output, _ = self.pretrained_model(point, hist) # ToDo: check this
                 reps.append(output.cpu().numpy())
         return np.concatenate(reps)
 
 
-
+    # ToDo: implement this
     def check_data(self, indices:list=[], output:str="", nrow:int=3, ncol:int=4):
         """ check data """
         raise NotImplementedError("!! Not implemented yet !!")
     
 
+    # ToDo: implement this
     def load_pretrained(self, model_path: str, config_path: str=None):
         """ load pretrained model """
         if config_path is not None:
@@ -161,6 +173,7 @@ class PHTwins:
         self.pretrained.load_state_dict(torch.load(model_path))
 
 
+    # ToDo: implement this
     def load_finetuned(self, model_path: str, config_path: str=None):
         """ load model with linear head """
         if config_path is not None:

@@ -93,7 +93,7 @@ class FeatureExtractor(nn.Module):
 
     def forward(self, point, hist):
         (z1, z2), loss = self.model(point, hist)
-        return torch.cat([z1, z2], dim=1), loss  # concatenate two features
+        return (z1 + z2) / 2, loss  # average two features
 
 
 class LinearHead(nn.Module):

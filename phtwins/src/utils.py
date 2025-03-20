@@ -6,7 +6,7 @@ utils
 
 @author: tadahaya
 """
-import json, os
+import json, os, time
 import matplotlib.pyplot as plt
 import torch
 
@@ -107,3 +107,12 @@ def progress_plot(
     ax.legend()
     plt.tight_layout()
     plt.savefig(fileout, dpi=300, bbox_inches='tight')
+
+
+def calc_elapsed_time(start_time):
+    """ calculate elapsed time """
+    elapsed_time = time.time() - start_time
+    h = int(elapsed_time // 3600)
+    m = int((elapsed_time % 3600) // 60)
+    s = elapsed_time % 60
+    return f"{h}h {m}m {s}s"

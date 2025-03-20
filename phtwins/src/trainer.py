@@ -6,13 +6,13 @@ trainer
 
 @author: tadahaya
 """
-import os
+import os, time
 import torch
 
-from .utils import save_experiment, save_checkpoint
+from .utils import save_experiment, save_checkpoint, calc_elapsed_time
 
 class PreTrainer:
-    def __init__(self, model, config, optimizer, scheduler, device):
+    def __init__(self, config, model, optimizer, scheduler, device):
         self.config = config
         self.model = model.to(device)
         self.optimizer = optimizer
@@ -35,6 +35,7 @@ class PreTrainer:
             "train_loss": [],
             "test_loss": [],
             "early_stop_epoch": None,
+            "elapsed_time": None
         }
 
 
@@ -43,6 +44,7 @@ class PreTrainer:
         train the model for the specified number of epochs.
         
         """
+        start_time = time.time()
         # training
         for i in range(self.config["epochs"]):
             train_loss = self.train_epoch(trainloader)
@@ -72,6 +74,8 @@ class PreTrainer:
             if self.save_model_every > 0 and (i + 1) % self.save_model_every == 0:
                 save_checkpoint(model=self.model, name=f"epoch_{i + 1}", outdir=self.resdir)
         # save the experiment
+        elapsed_time = calc_elapsed_time(start_time)
+        self.history["elapsed_time"] = elapsed_time
         save_experiment(config=self.config, model=self.model, history=self.history)
 
 
@@ -120,9 +124,10 @@ class PreTrainer:
 
 # ToDo: implement Trainer class
 class Trainer:
-    def __init__(self, model, config, optimizer, scheduler, device):
+    def __init__(self, model, config, loss_fn, optimizer, scheduler, device):
         self.config = config
         self.model = model.to(device)
+        self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.device = device
@@ -130,7 +135,10 @@ class Trainer:
         self.exp_name = config["exp_name"]
         self.outdir = config["outdir"]
         self.save_model_every = config["save_model_every"]
-        self.use_pretrain_loss = config["use_pretrain_loss"]
+        if config["frozen"]:
+            self.use_pretrain_loss = False # if the model is frozen, pretrain loss is never used
+        else:
+            self.use_pretrain_loss = config["use_pretrain_loss"]
         # I/O
         self.resdir = os.path.join(self.outdir, self.exp_name)
         os.makedirs(self.resdir, exist_ok=True)
@@ -146,6 +154,7 @@ class Trainer:
             "test_loss": [],
             "test_accuracy": [],
             "early_stop_epoch": None,
+            "elapsed_time": None
         }
 
 
@@ -154,6 +163,7 @@ class Trainer:
         train the model for the specified number of epochs.
         
         """
+        start_time = time.time()
         # training
         for i in range(self.config["epochs"]):
             train_loss, train_acc = self.train_epoch(trainloader)
@@ -185,6 +195,8 @@ class Trainer:
             if self.save_model_every > 0 and (i + 1) % self.save_model_every == 0:
                 save_checkpoint(model=self.model, name=f"epoch_{i + 1}", outdir=self.resdir)
         # save the experiment
+        elapsed_time = calc_elapsed_time(start_time)
+        self.history["elapsed_time"] = elapsed_time
         save_experiment(config=self.config, model=self.model, history=self.history)
 
 
@@ -202,7 +214,7 @@ class Trainer:
             self.optimizer.zero_grad()
             # forward calculation
             output, pt_loss = self.model(point, hist)
-            ft_loss = self.model.loss_fn(output, label)
+            ft_loss = self.loss_fn(output, label)
             loss = pt_loss + ft_loss if self.use_pretrain_loss else ft_loss
             # backpropagation
             loss.backward()
