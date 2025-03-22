@@ -158,14 +158,14 @@ class PHTwins:
 
 
     # ToDo: implement this
-    def check_data(self, dataloader, indices:list=[], output:str="", nrow:int=3, ncol:int=4):
+    def check_data(self, dataloader, indices:list=[], bins=16, output:str="", nrow:int=3, ncol:int=4):
         """ check data """
         point_list = []
         for i, (data, _) in enumerate(dataloader):
             if i in indices:
                 point_list.append(data[0].numpy())
         # plot
-        plot_hist(point_list, output, nrow, ncol)
+        plot_hist(point_list, bins, output, nrow, ncol)
 
 
     def load_pretrained(self, model_path: str, config_path: str=None):
