@@ -82,7 +82,7 @@ class PHTwins:
             self.config["scale_factor"] # factor to scale the loss by
         )
         optimizer = optim.AdamW(
-            self.pretrained_model.parameters(), lr=self.config["lr"], weight_decay=self.config["weight_decay"]
+            self.pretrained_model.parameters(), lr=float(self.config["lr"]), weight_decay=float(self.config["weight_decay"])
             )
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.config["epochs"])
         trainer = PreTrainer(
