@@ -27,7 +27,7 @@ def save_experiment(config, model, history, plot_progress=True):
     
     """
     outdir = config["outdir"]
-    experiment_name = config["experiment_name"]
+    experiment_name = config["exp_name"]
     resdir = os.path.join(outdir, experiment_name)
     os.makedirs(resdir, exist_ok=True)
     # save config
