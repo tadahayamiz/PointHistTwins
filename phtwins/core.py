@@ -161,8 +161,18 @@ class PHTwins:
 
     # ToDo: implement this
     def check_data(self, dataset, indices:list=[], bins=16, output:str="", nrow:int=3, ncol:int=4):
-        """ check data """
-        point_list = [dataset[i].numpy() for i in indices]
+        """
+        check data
+        
+        Parameters
+        ----------
+        dataset: torch.utils.data.Dataset
+            the PHTwins dataset
+        indices: list
+            the list of indices to be checked
+        
+        """
+        point_list = [dataset[i][0].numpy() for i in indices]
         # plot
         plot_hist(point_list, bins, nrow, ncol, output)
 
