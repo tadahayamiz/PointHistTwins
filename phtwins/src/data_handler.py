@@ -8,6 +8,7 @@ data handler
 """
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -26,6 +27,54 @@ def calc_hist(X, bins=16) -> np.ndarray:
     else:
         raise ValueError("!! Input array must be 1D, 2D, or 3D. !!")
     return hist
+
+
+def plot_hist(X_list, bins=16, nrow=1, ncol=1):
+    """
+    plot histograms
+
+    """
+    num_plots = len(X_list)
+    fig, axes = plt.subplots(nrow, ncol, figsize=(5 * ncol, 5 * nrow))    
+    # Flatten axes for easy iteration
+    axes = np.array(axes).flatten() if num_plots > 1 else [axes]
+    for i, X in enumerate(X_list):
+        ax = axes[i]
+        hist = calc_hist(X, bins)
+        dim = X.shape[1] if X.ndim > 1 else 1  # dimension of the data
+        if dim == 1:
+            ax.bar(range(len(hist)), hist, width=0.8, color='royalblue', alpha=0.7)
+            ax.set_xlabel('Bins')
+            ax.set_ylabel('Frequency')
+            ax.set_title(f'1D Histogram {i+1}')
+        elif dim == 2:
+            im = ax.imshow(hist.T, origin='lower', cmap='viridis', aspect='auto')
+            fig.colorbar(im, ax=ax, label='Frequency')
+            ax.set_xlabel('X Bins')
+            ax.set_ylabel('Y Bins')
+            ax.set_title(f'2D Histogram {i+1}')
+        elif dim == 3:
+            ax = fig.add_subplot(nrow, ncol, i+1, projection='3d')
+            xpos, ypos, zpos = np.meshgrid(
+                np.arange(hist.shape[0]),
+                np.arange(hist.shape[1]),
+                np.arange(hist.shape[2]),
+                indexing="ij"
+            )
+            xpos = xpos.flatten()
+            ypos = ypos.flatten()
+            zpos = zpos.flatten()
+            values = hist.flatten()
+            ax.bar3d(xpos, ypos, np.zeros_like(zpos), 1, 1, values, shade=True, cmap="viridis")
+            ax.set_xlabel('X Bins')
+            ax.set_ylabel('Y Bins')
+            ax.set_zlabel('Frequency')
+            ax.set_title(f'3D Histogram {i+1}')
+    for j in range(num_plots, len(axes)):
+        fig.delaxes(axes[j])
+    plt.tight_layout()
+    plt.show()
+    plt.close()
 
 
 class PointHistDataset(Dataset):

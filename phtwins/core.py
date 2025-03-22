@@ -19,7 +19,7 @@ from datetime import datetime
 
 from .src.barlow import BarlowTwins, LinearHead
 from .src.trainer import PreTrainer, Trainer
-from .src.data_handler import PointHistDataset, prep_dataloader
+from .src.data_handler import PointHistDataset, prep_dataloader, plot_hist
 
 class PHTwins:
     """ class for training and prediction """
@@ -158,10 +158,15 @@ class PHTwins:
 
 
     # ToDo: implement this
-    def check_data(self, indices:list=[], output:str="", nrow:int=3, ncol:int=4):
+    def check_data(self, dataloader, indices:list=[], output:str="", nrow:int=3, ncol:int=4):
         """ check data """
-        raise NotImplementedError("!! Not implemented yet !!")
-    
+        point_list = []
+        for i, (data, _) in enumerate(dataloader):
+            if i in indices:
+                point_list.append(data[0].numpy())
+        # plot
+        plot_hist(point_list, output, nrow, ncol)
+
 
     def load_pretrained(self, model_path: str, config_path: str=None):
         """ load pretrained model """
