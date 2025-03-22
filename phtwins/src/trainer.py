@@ -88,9 +88,6 @@ class PreTrainer:
             # data = (point, hist)
             point, hist = (x.to(self.device) for x in data)
             label = label.to(self.device)
-
-            print(point.shape, hist.shape)
-
             # initialize the gradients
             self.optimizer.zero_grad()
             # forward/loss calculation
