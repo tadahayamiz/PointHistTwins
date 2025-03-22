@@ -19,6 +19,7 @@ scale_factor: 1.0
 # === HistEncoder ===
 hist_dim: 2 # this is the same as input_dim
 hidden_hist: 64
+num_blocks: 4
 # output_hist: 128 # this is the same as latent_dim
 dropout_hist: 0.3
 # === Linear head ===
