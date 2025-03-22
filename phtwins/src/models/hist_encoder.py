@@ -6,105 +6,7 @@ histogram encoder with convolutional neural network
 
 @author: tadahaya
 """
-import math
-import torch
 import torch.nn as nn
-
-# HistEncoder
-class Hist1dConv(nn.Module):
-    def __init__(self, output_channels=64):
-        super().__init__()
-        # convolutional layer
-        self.conv = nn.Conv1d(in_channels=1, # input channel is 1 because of histogram
-                              out_channels=output_channels,
-                              kernel_size=3,  # filter size 3x3
-                              stride=1,       # stride 1
-                              padding=1)      # padding 'same'
-        # global average pooling
-        self.global_avg_pool = nn.AdaptiveAvgPool1d(1)  # finally (1, 1)
-
-    def forward(self, x):
-        # convolution
-        x = self.conv(x)
-        # global average pooling
-        x = self.global_avg_pool(x)
-        # flatten as embedding vector
-        x = x.view(x.size(0), -1)
-        return x
-
-
-class Hist2dConv(nn.Module):
-    def __init__(self, output_channels=64):
-        super().__init__()
-        # convolutional layer
-        self.conv = nn.Conv2d(in_channels=1, # input channel is 1 because of histogram
-                              out_channels=output_channels,
-                              kernel_size=3,  # filter size 3x3
-                              stride=1,       # stride 1
-                              padding=1)      # padding 'same'
-        # global average pooling
-        self.global_avg_pool = nn.AdaptiveAvgPool2d(1)  # finally (1, 1)
-
-    def forward(self, x):
-        # convolution
-        x = self.conv(x)
-        # global average pooling
-        x = self.global_avg_pool(x)
-        # flatten as embedding vector
-        x = x.view(x.size(0), -1)
-        return x
-
-
-class Hist3dConv(nn.Module):
-    def __init__(self, output_channels=64):
-        super().__init__()
-        # convolutional layer
-        self.conv = nn.Conv3d(in_channels=1, # input channel is 1 because of histogram
-                              out_channels=output_channels,
-                              kernel_size=3,  # filter size 3x3
-                              stride=1,       # stride 1
-                              padding=1)      # padding 'same'
-        # global average pooling
-        self.global_avg_pool = nn.AdaptiveAvgPool3d(1)  # finally (1, 1)
-
-    def forward(self, x):
-        # convolution
-        x = self.conv(x)
-        # global average pooling
-        x = self.global_avg_pool(x)
-        # flatten as embedding vector
-        x = x.view(x.size(0), -1)
-        return x
-    
-
-# HistEncoder
-class HistEncoder0(nn.Module):
-    def __init__(self, hist_dim:int, hidden_dim:int, output_dim:int, prob_dropout=0.3):
-        super().__init__()
-        # convolutional layer
-        if hist_dim == 1:
-            self.hist_conv = Hist1dConv(output_channels=hidden_dim)
-        elif hist_dim == 2:
-            self.hist_conv = Hist2dConv(output_channels=hidden_dim)
-        elif hist_dim == 3:
-            self.hist_conv = Hist3dConv(output_channels=hidden_dim)
-        else:
-            raise ValueError("!! hist_dim should be 1, 2 or 3 !!")
-        # MLP for output
-        self.mlp = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim),  # Linear
-            nn.ReLU(),                         # ReLU
-            nn.Dropout(prob_dropout),          # Dropout
-            nn.Linear(hidden_dim, output_dim)  # Linear for output
-        )
-
-    def forward(self, x):
-        # convolution
-        x = self.hist_conv(x)
-        # MLP
-        x = self.mlp(x)
-        return x
-    
 
 class ResidualBlock(nn.Module):
     def __init__(self, channels, dim):
@@ -130,7 +32,7 @@ class ResidualBlock(nn.Module):
         return out
 
 
-class HistConvDeep(nn.Module):
+class HistDeepConv(nn.Module):
     """ Deep Residual Network for Histogram Convolutional Encoder """
     def __init__(self, output_channels=64, num_blocks=4, dim=2):
         super().__init__()
@@ -160,7 +62,56 @@ class HistEncoder(nn.Module):
         super().__init__()
         # convolutional layer
         assert hist_dim in [1, 2, 3], "hist_dim must be 1 (1D), 2 (2D), or 3 (3D)"
-        self.hist_conv = HistConvDeep(output_channels=hidden_dim, num_blocks=num_blocks, dim=hist_dim)
+        self.hist_conv = HistDeepConv(output_channels=hidden_dim, num_blocks=num_blocks, dim=hist_dim)
+        # MLP for output
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),  # Linear
+            nn.ReLU(),                         # ReLU
+            nn.Dropout(prob_dropout),          # Dropout
+            nn.Linear(hidden_dim, output_dim)  # Linear for output
+        )
+
+    def forward(self, x):
+        # convolution
+        x = self.hist_conv(x)
+        # MLP
+        x = self.mlp(x)
+        return x
+    
+
+# HistShallowEncoder
+class HistShallowConv(nn.Module):
+    def __init__(self, output_channels, dim):
+        super().__init__()
+        # convolutional layer
+        assert dim in [1, 2, 3], "dim must be 1 (1D), 2 (2D), or 3 (3D)"
+        Conv = {1: nn.Conv1d, 2: nn.Conv2d, 3: nn.Conv3d}[dim]
+        self.conv = nn.Conv(
+            in_channels=1, # input channel is 1 because of histogram
+            out_channels=output_channels,
+            kernel_size=3,  # filter size 3x3
+            stride=1,       # stride 1
+            padding=1
+            )      # padding 'same'
+        # global average pooling
+        self.global_avg_pool = nn.AdaptiveAvgPool1d(1)  # finally (1, 1)
+
+    def forward(self, x):
+        # convolution
+        x = self.conv(x)
+        # global average pooling
+        x = self.global_avg_pool(x)
+        # flatten as embedding vector
+        x = x.view(x.size(0), -1)
+        return x
+
+
+class HistShallowEncoder(nn.Module):
+    def __init__(self, hist_dim:int, hidden_dim:int, output_dim:int, prob_dropout=0.3):
+        super().__init__()
+        # convolutional layer
+        assert hist_dim in [1, 2, 3], "hist_dim must be 1 (1D), 2 (2D), or 3 (3D)"
+        self.hist_conv = HistShallowConv(output_channels=hidden_dim, dim=hist_dim)
         # MLP for output
         self.mlp = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),  # Linear
