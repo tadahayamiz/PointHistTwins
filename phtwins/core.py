@@ -70,11 +70,7 @@ class PHTwins:
         """ pretraining """
         # prepare model
         self.pretrained_model = BarlowTwins(
-            self.config["input_dim"], # the dimension of the input
-            self.config["hidden_mlp"], # the dimension of the hidden layer
-            self.config["hidden_attn"], # the dimension of the hidden layer
-            self.config["dropout_mlp"], # the dropout rate
-            self.config["dropout_attn"], # the dropout rate
+            self.config["hist_dim"], # the dimension of the input
             self.config["hidden_hist"], # the dimension of the hidden layer
             self.config["dropout_hist"], # the dropout rate
             self.config["latent_dim"], # the dimension of the latent representation
@@ -106,12 +102,9 @@ class PHTwins:
             self.config["frozen"] # whether the pretrained model is frozen
         )
         loss_fn = nn.CrossEntropyLoss()
-        optimizer = optim.AdamW(
-            self.finetuned_model.parameters(), lr=self.config["lr"], weight_decay=self.config["weight_decay"]
-            )
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.config["epochs"])
+        optimizer = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         trainer = Trainer(
-            self.config, self.finetuned_model, loss_fn, optimizer, scheduler, self.config["device"]
+            self.config, self.finetuned_model, loss_fn, optimizer, self.config["device"]
             )
         # training
         trainer.train(train_loader, test_loader)
@@ -172,8 +165,8 @@ class PHTwins:
             the list of indices to be checked
         
         """
-        point_list = [dataset[i][0][0].numpy() for i in indices] # ((point, hist), label)
-        plot_hist(point_list, bins, nrow, ncol, output)
+        hist_list = [dataset[i][0][0].numpy() for i in indices] # ((point, hist), label)
+        plot_hist(hist_list, bins, nrow, ncol, output)
 
 
     def qual_eval(self, dataset, query_indices, bins=16, outdir:str=""):
@@ -211,11 +204,7 @@ class PHTwins:
             self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
             self.config["config_path"] = config_path
         self.pretrained_model = BarlowTwins(
-            self.config["input_dim"], # the dimension of the input
-            self.config["hidden_mlp"], # the dimension of the hidden layer
-            self.config["hidden_attn"], # the dimension of the hidden layer
-            self.config["dropout_mlp"], # the dropout rate
-            self.config["dropout_attn"], # the dropout rate
+            self.config["hist_dim"], # the dimension of the input
             self.config["hidden_hist"], # the dimension of the hidden layer
             self.config["dropout_hist"], # the dropout rate
             self.config["latent_dim"], # the dimension of the latent representation
@@ -236,11 +225,7 @@ class PHTwins:
             self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
             self.config["config_path"] = config_path
         init_bt_model = BarlowTwins(
-            self.config["input_dim"], # the dimension of the input
-            self.config["hidden_mlp"], # the dimension of the hidden layer
-            self.config["hidden_attn"], # the dimension of the hidden layer
-            self.config["dropout_mlp"], # the dropout rate
-            self.config["dropout_attn"], # the dropout rate
+            self.config["hist_dim"], # the dimension of the input
             self.config["hidden_hist"], # the dimension of the hidden layer
             self.config["dropout_hist"], # the dropout rate
             self.config["latent_dim"], # the dimension of the latent representation

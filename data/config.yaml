@@ -16,15 +16,8 @@ output_proj: 128
 num_proj: 2
 lambd: 0.005
 scale_factor: 1.0
-# === PointEncoder ===
-input_dim: 2
-hidden_mlp: 32
-# output_mlp: 128 # this is the same as latent_dim
-dropout_mlp: 0.5
-hidden_attn: 64
-dropout_attn: 0.3
 # === HistEncoder ===
-# hist_dim: 2 # this is the same as input_dim
+hist_dim: 2 # this is the same as input_dim
 hidden_hist: 64
 # output_hist: 128 # this is the same as latent_dim
 dropout_hist: 0.3

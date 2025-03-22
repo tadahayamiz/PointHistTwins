@@ -29,19 +29,18 @@ def calc_hist(X, bins=16) -> np.ndarray:
     return hist
 
 
-def plot_hist(X_list, bins=16, nrow=1, ncol=1, output=""):
+def plot_hist(hist_list, bins=16, nrow=1, ncol=1, output=""):
     """
     plot histograms
 
     """
-    num_plots = len(X_list)
+    num_plots = len(hist_list)
     fig, axes = plt.subplots(nrow, ncol, figsize=(5 * ncol, 5 * nrow))    
     # Flatten axes for easy iteration
     axes = np.array(axes).flatten() if num_plots > 1 else [axes]
-    for i, X in enumerate(X_list):
+    for i, hist in enumerate(hist_list):
         ax = axes[i]
-        hist = calc_hist(X, bins)
-        dim = X.shape[1] if X.ndim > 1 else 1  # dimension of the data
+        dim = hist.shape[1] if hist.ndim > 1 else 1  # dimension of the data
         if dim == 1:
             ax.bar(range(len(hist)), hist, width=0.8, color='royalblue', alpha=0.7)
             ax.set_xlabel('Bins')
@@ -133,23 +132,31 @@ class PointHistDataset(Dataset):
         pointcloud = np.array(data[self.key_data], dtype=np.float32)
         # limit the number of points if necessary (random sampling)
         if pointcloud.shape[0] > self.num_points:
-            idxs = np.random.choice(pointcloud.shape[0], self.num_points, replace=False)
-            pointcloud = pointcloud[idxs, :]
+            idxs0 = np.random.choice(pointcloud.shape[0], self.num_points, replace=False)
+            pointcloud0 = pointcloud[idxs0, :]
+            idxs1 = np.random.choice(pointcloud.shape[0], self.num_points, replace=False)
+            pointcloud1 = pointcloud[idxs1, :]
+        else:
+            idxs0 = np.random.choice(pointcloud.shape[0], self.num_points, replace=True)
+            pointcloud0 = pointcloud[idxs0, :]
+            idxs1 = np.random.choice(pointcloud.shape[0], self.num_points, replace=True)
+            pointcloud1 = pointcloud[idxs1, :]
         # transform
         if self.transform:
-            pointcloud = self.transform(pointcloud)
+            pointcloud0 = self.transform(pointcloud0)
+            pointcloud1 = self.transform(pointcloud1)
         # prepare histogram
-        hist = calc_hist(pointcloud, bins=self.bins)
-        hist = torch.tensor(hist, dtype=torch.float32).unsqueeze(0) # add channel dimension
-        # prepare point cloud
-        pointcloud = torch.tensor(pointcloud, dtype=torch.float32)
+        hist0 = calc_hist(pointcloud0, bins=self.bins)
+        hist1 = calc_hist(pointcloud1, bins=self.bins)
+        hist0 = torch.tensor(hist0, dtype=torch.float32).unsqueeze(0) # add channel dimension
+        hist1 = torch.tensor(hist1, dtype=torch.float32).unsqueeze(0) # add channel dimension
         # prepare label
         label = self.id2label[key]
         try:
             label = torch.tensor(label, dtype=torch.long)
         except ValueError:
             pass # if label is None
-        return (pointcloud, hist), label
+        return (hist0, hist1), label
 
 
 def prep_dataloader(

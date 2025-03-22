@@ -83,20 +83,20 @@ class PreTrainer:
         total_loss = 0.0
         total_samples = 0 # for averaging the loss
         for data, label in trainloader:
-            # data = (point, hist)
-            point, hist = (x.to(self.device) for x in data)
+            # data = (hist, hist)
+            hist0, hist1 = (x.to(self.device) for x in data)
             label = label.to(self.device)
             # initialize the gradients
             self.optimizer.zero_grad()
             # forward/loss calculation
-            _, loss = self.model(point, hist) # output, bt_loss
+            _, loss = self.model(hist0, hist1) # output, bt_loss
             # note: loss is averaged over the batch
             # backpropagation
             loss.backward()
             # update the parameters
             self.optimizer.step()
             # Loss accumulation
-            batch_size = point.shape[0]
+            batch_size = hist0.shape[0]
             total_loss += loss.detach().item() * batch_size
             total_samples += batch_size
         return total_loss / total_samples
@@ -109,13 +109,12 @@ class PreTrainer:
         total_samples = 0 # for averaging the loss
         with torch.no_grad():
             for data, label in testloader:
-                # data = (point, hist)
-                point, hist = (x.to(self.device) for x in data)
+                hist0, hist1 = (x.to(self.device) for x in data)
                 label = label.to(self.device)
                 # forward/loss calculation
-                _, loss = self.model(point, hist) # output, bt_loss
+                _, loss = self.model(hist0, hist1) # output, bt_loss
                 # Loss accumulation
-                batch_size = point.shape[0]
+                batch_size = hist0.shape[0]
                 total_loss += loss.item() * batch_size # detach() is not necessary
                 total_samples += batch_size
         return total_loss / total_samples
@@ -203,13 +202,12 @@ class Trainer:
         total_samples = 0 # for averaging the loss
         correct = 0
         for data, label in trainloader:
-            # data = (point, hist)
-            point, hist = (x.to(self.device) for x in data)
+            hist0, hist1 = (x.to(self.device) for x in data)
             label = label.to(self.device)
             # initialize the gradients
             self.optimizer.zero_grad()
             # forward calculation
-            output, pt_loss = self.model(point, hist)
+            output, pt_loss = self.model(hist0, hist1)
             ft_loss = self.loss_fn(output, label)
             loss = pt_loss + ft_loss if self.use_pretrain_loss else ft_loss
             # backpropagation
@@ -217,7 +215,7 @@ class Trainer:
             # update the parameters
             self.optimizer.step()
             # Loss accumulation
-            batch_size = point.shape[0]
+            batch_size = hist0.shape[0]
             total_loss += loss.detach().item() * batch_size
             total_samples += batch_size
             # Accuracy calculation (disable gradients for efficiency)
@@ -237,14 +235,14 @@ class Trainer:
         with torch.no_grad():
             for data, label in testloader:
                 # Move data to device
-                point, hist = (x.to(self.device) for x in data)
+                hist0, hist1 = (x.to(self.device) for x in data)
                 label = label.to(self.device)
                 # Forward pass
-                output, pt_loss = self.model(point, hist)
+                output, pt_loss = self.model(hist0, hist1)
                 ft_loss = self.model.loss_fn(output, label)
                 loss = pt_loss + ft_loss if self.use_pretrain_loss else ft_loss
                 # Loss accumulation
-                batch_size = point.shape[0]
+                batch_size = hist0.shape[0]
                 total_loss += loss.item() * batch_size # detach() is not necessary
                 total_samples += batch_size
                 # Accuracy calculation

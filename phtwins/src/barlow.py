@@ -14,7 +14,6 @@ import torch
 import torch.nn as nn
 
 from .models.hist_encoder import HistEncoder
-from .models.point_encoder import PointEncoder
 
 def off_diagonal(x):
     """ return a flattened view of the off-diagonal elements of a square matrix """
@@ -51,7 +50,6 @@ class BarlowTwins(nn.Module):
         """
         super().__init__()
         # encoder
-        self.point_encoder = PointEncoder(input_dim, hidden_mlp, latent_dim, hidden_attn, dropout_mlp, dropout_attn)
         self.hist_encoder = HistEncoder(input_dim, hidden_hist, latent_dim, dropout_hist)
         # projector
         layers = []
@@ -69,21 +67,20 @@ class BarlowTwins(nn.Module):
         self.scale_factor = scale_factor
 
 
-    def forward(self, point, hist):  # input two views
+    def forward(self, hist0, hist1):  # input two views
         # encode views
-        z1, weight = self.point_encoder(point)  # returns embedding and attention weights
-        z2 = self.hist_encoder(hist)
+        z0, z1 = self.hist_encoder(hist0), self.hist_encoder(hist1)
         # project representations
+        z0 = self.projector(z0)
         z1 = self.projector(z1)
-        z2 = self.projector(z2)
-        batch_size = z1.shape[0]
+        batch_size = z0.shape[0]
         # empirical cross-correlation matrix
-        c = torch.mm(self.bn(z1).T, self.bn(z2)) / batch_size
+        c = torch.mm(self.bn(z0).T, self.bn(z1)) / batch_size
         # scaling
         on_diag = torch.diagonal(c).add_(-1).pow_(2).sum() / batch_size
         off_diag = off_diagonal(c).pow_(2).sum() / (batch_size * (batch_size - 1))  # off-diagonal
         loss = self.scale_factor * (on_diag + self.lambd * off_diag)
-        return (z1, z2), loss
+        return (z0, z1), loss
 
         
 class FeatureExtractor(nn.Module):
@@ -95,8 +92,8 @@ class FeatureExtractor(nn.Module):
         self.model = twins
 
 
-    def forward(self, point, hist):
-        (z1, z2), loss = self.model(point, hist)
+    def forward(self, hist0, hist1):
+        (z1, z2), loss = self.model(hist0, hist1)
         return (z1 + z2) / 2, loss  # average two features
 
 
