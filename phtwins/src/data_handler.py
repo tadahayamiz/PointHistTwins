@@ -89,7 +89,7 @@ class PointHistDataset(Dataset):
             pointcloud = self.transform(pointcloud)
         # prepare histogram
         hist = calc_hist(pointcloud, bins=self.bins)
-        hist = torch.tensor(hist, dtype=torch.float32)
+        hist = torch.tensor(hist, dtype=torch.float32).unsqueeze(0) # add channel dimension
         # prepare point cloud
         pointcloud = torch.tensor(pointcloud, dtype=torch.float32)
         # prepare label
