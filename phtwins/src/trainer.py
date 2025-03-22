@@ -209,6 +209,11 @@ class Trainer:
         for data, label in trainloader:
             # data = (point, hist)
             point, hist = (x.to(self.device) for x in data)
+
+            print(point.shape)
+            print(hist.shape)
+
+
             label = label.to(self.device)
             # initialize the gradients
             self.optimizer.zero_grad()
