@@ -100,7 +100,13 @@ class HistEncoder(nn.Module):
 
     def forward(self, x):
         # convolution
+
+        print(x.size())
+
         x = self.hist_conv(x)
+
+        print(x.size())
+
         # MLP
         x = self.mlp(x)
         return x
