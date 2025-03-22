@@ -12,11 +12,10 @@ import torch
 from .utils import save_experiment, save_checkpoint, calc_elapsed_time
 
 class PreTrainer:
-    def __init__(self, config, model, optimizer, scheduler, device):
+    def __init__(self, config, model, optimizer, device):
         self.config = config
         self.model = model.to(device)
         self.optimizer = optimizer
-        self.scheduler = scheduler
         self.device = device
         # config contents
         self.exp_name = config["exp_name"]
