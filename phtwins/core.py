@@ -12,6 +12,7 @@ note 250320
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from schedulefree import RAdamScheduleFree
 import numpy as np
 import pandas as pd
 import yaml
@@ -83,12 +84,9 @@ class PHTwins:
             self.config["lambd"], # tradeoff parameter
             self.config["scale_factor"] # factor to scale the loss by
         )
-        optimizer = optim.AdamW(
-            self.pretrained_model.parameters(), lr=float(self.config["lr"]), weight_decay=float(self.config["weight_decay"])
-            )
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.config["epochs"])
+        optimizer = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         trainer = PreTrainer(
-            self.config, self.pretrained_model, optimizer, scheduler=scheduler, device=self.config["device"]
+            self.config, self.pretrained_model, optimizer, device=self.config["device"]
             )
         # training
         trainer.train(train_loader, test_loader)

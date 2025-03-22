@@ -67,9 +67,6 @@ class PreTrainer:
                     print("> Early stopping")
                     self.history["early_stop_epoch"] = i + 1
                     break
-            # scheduler
-            if self.scheduler is not None:
-                self.scheduler.step(test_loss)
             # save the model
             if self.save_model_every > 0 and (i + 1) % self.save_model_every == 0:
                 save_checkpoint(model=self.model, name=f"epoch_{i + 1}", outdir=self.resdir)
@@ -82,6 +79,7 @@ class PreTrainer:
     def train_epoch(self, trainloader):
         """ train the model for one epoch """
         self.model.train()
+        self.optimizer.train()
         total_loss = 0.0
         total_samples = 0 # for averaging the loss
         for data, label in trainloader:
@@ -106,6 +104,7 @@ class PreTrainer:
 
     def evaluate(self, testloader):
         self.model.eval()
+        self.optimizer.eval()
         total_loss = 0.0
         total_samples = 0 # for averaging the loss
         with torch.no_grad():
@@ -124,12 +123,11 @@ class PreTrainer:
 
 # ToDo: implement Trainer class
 class Trainer:
-    def __init__(self, model, config, loss_fn, optimizer, scheduler, device):
+    def __init__(self, model, config, loss_fn, optimizer, device):
         self.config = config
         self.model = model.to(device)
         self.loss_fn = loss_fn
         self.optimizer = optimizer
-        self.scheduler = scheduler
         self.device = device
         # config contents
         self.exp_name = config["exp_name"]
@@ -188,9 +186,6 @@ class Trainer:
                     print("> Early stopping")
                     self.history["early_stop_epoch"] = i + 1
                     break
-            # scheduler
-            if self.scheduler is not None:
-                self.scheduler.step(test_loss)
             # save the model
             if self.save_model_every > 0 and (i + 1) % self.save_model_every == 0:
                 save_checkpoint(model=self.model, name=f"epoch_{i + 1}", outdir=self.resdir)
@@ -203,6 +198,7 @@ class Trainer:
     def train_epoch(self, trainloader):
         """ train the model for one epoch """
         self.model.train()
+        self.optimizer.train()
         total_loss = 0.0
         total_samples = 0 # for averaging the loss
         correct = 0
@@ -234,6 +230,7 @@ class Trainer:
     def evaluate(self, testloader):
         """Evaluate the model on the test set"""
         self.model.eval()
+        self.optimizer.eval()
         total_loss = 0.0
         total_samples = 0
         correct = 0

@@ -55,17 +55,26 @@ def save_checkpoint(model, name, outdir):
     
     """
     cpfile = os.path.join(outdir, f"model_{name}.pt")
-    torch.save(model.state_dict(), cpfile)
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "optimizer": model.optimizer.state_dict(),
+        },
+        cpfile
+    )
 
 
-def load_experiments(init_model, resdir, checkpoint_name="model_final"):
+def load_experiments(model, optimizer, resdir, checkpoint_name="model_final"):
     """
     load the experiment
 
     Parameters
     ----------
-    init_model: nn.Module
+    model: nn.Module
         initialized model
+
+    optimizer: torch.optim
+        initialized optimizer
 
     resdir: str
         the result directory
@@ -83,10 +92,10 @@ def load_experiments(init_model, resdir, checkpoint_name="model_final"):
     with open(historyfile, 'r') as f:
         history = json.load(f)
     # load model
-    model = init_model(config)
-    cpfile = os.path.join(resdir, checkpoint_name)
-    model.load_state_dict(torch.load(cpfile)) # checkpointを読み込んでから
-    return model, config, history
+    pkg = torch.load(os.path.join(resdir, checkpoint_name))
+    model.load_state_dict(pkg["model"])
+    optimizer.load_state_dict(pkg["optimizer"])
+    return model, optimizer, config, history
 
 
 def progress_plot(
