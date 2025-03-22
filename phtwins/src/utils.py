@@ -6,7 +6,7 @@ utils
 
 @author: tadahaya
 """
-import json, os, time
+import json, os, time, yaml
 import matplotlib.pyplot as plt
 import torch
 
@@ -17,7 +17,7 @@ def save_experiment(config, model, optimizer, history, plot_progress=True):
     
     outdir
     ├── experiment_name
-        ├── config.json
+        ├── config.yaml
         ├── history.json
         ├── progress_loss.tif
         ├── model_final.pt
@@ -31,9 +31,9 @@ def save_experiment(config, model, optimizer, history, plot_progress=True):
     resdir = os.path.join(outdir, experiment_name)
     os.makedirs(resdir, exist_ok=True)
     # save config
-    configfile = os.path.join(resdir, 'config.json')
+    configfile = os.path.join(resdir, 'config.yaml')
     with open(configfile, 'w') as f:
-        json.dump(config, f, sort_keys=True, indent=4)
+        yaml.dump(config, f, default_flow_style=False) 
     # save history
     historyfile = os.path.join(resdir, 'history.json')
     with open(historyfile, 'w') as f:
@@ -84,9 +84,9 @@ def load_experiments(model, optimizer, resdir, checkpoint_name="model_final"):
     
     """
     # load config
-    configfile = os.path.join(resdir, "config.json")
+    configfile = os.path.join(resdir, "config.yaml")
     with open(configfile, 'r') as f:
-        config = json.load(f)
+        config = yaml.safe_load(f)
     # load history
     historyfile = os.path.join(resdir, 'hisotry.json')
     with open(historyfile, 'r') as f:

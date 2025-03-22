@@ -51,9 +51,10 @@ class PreTrainer:
             # logging
             self.history["train_loss"].append(train_loss)
             self.history["test_loss"].append(test_loss)
-            print(
-                f"Epoch: {i + 1}, Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}"
-                )
+            if (i + 1) % 10 == 0:
+                print(
+                    f"Epoch: {i + 1}, Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}"
+                    )
             # early stopping
             if self.patience is not None:
                 if test_loss < self.best_loss:

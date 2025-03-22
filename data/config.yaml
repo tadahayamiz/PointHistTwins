@@ -6,7 +6,7 @@ outdir: null
 exp_name: null
 # === Data ===
 num_points: 768
-bins: 16
+bins: 64
 num_workers: 4
 pin_memory: True
 # === Barlow Twins ===
@@ -38,8 +38,8 @@ frozen: False
 use_pretrain_loss: False
 # === Training ===
 batch_size: 32
-epochs: 2
+epochs: 2000
 lr: 1e-3
 weight_decay: 1e-3
-save_model_every: 0
-patience: null
+save_model_every: 200
+patience: 200
