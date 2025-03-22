@@ -33,6 +33,5 @@ use_pretrain_loss: False
 batch_size: 32
 epochs: 2000
 lr: 1e-3
-weight_decay: 1e-3
 save_model_every: 200
 patience: 200
