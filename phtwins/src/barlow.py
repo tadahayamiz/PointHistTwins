@@ -28,7 +28,11 @@ class BarlowTwins(nn.Module):
     single GPU version based on https://github.com/facebookresearch/barlowtwins
 
     """
-    def __init__(self, latent_dim, hidden_proj, output_proj, num_proj=2, lambd=0.005, scale_factor=1):
+    def __init__(
+            self, input_dim, hidden_mlp, hidden_attn, dropout_mlp, dropout_attn, # for PointEncoder
+            hidden_hist, dropout_hist, # for HistEncoder
+            latent_dim, hidden_proj, output_proj, num_proj=2, lambd=0.005, scale_factor=1, # for BarlowTwins
+            ):
         """
         Parameters
         ----------
@@ -47,8 +51,8 @@ class BarlowTwins(nn.Module):
         """
         super().__init__()
         # encoder
-        self.point_encoder = PointEncoder()
-        self.hist_encoder = HistEncoder()
+        self.point_encoder = PointEncoder(input_dim, hidden_mlp, hidden_attn, dropout_mlp, dropout_attn)
+        self.hist_encoder = HistEncoder(input_dim, hidden_hist, dropout_hist)
         # projector
         layers = []
         in_features = latent_dim

@@ -67,6 +67,13 @@ class PHTwins:
         """ pretraining """
         # prepare model
         self.pretrained_model = BarlowTwins(
+            self.config["input_dim"], # the dimension of the input
+            self.config["hidden_mlp"], # the dimension of the hidden layer
+            self.config["hidden_attn"], # the dimension of the hidden layer
+            self.config["dropout_mlp"], # the dropout rate
+            self.config["dropout_attn"], # the dropout rate
+            self.config["hidden_hist"], # the dimension of the hidden layer
+            self.config["dropout_hist"], # the dropout rate
             self.config["latent_dim"], # the dimension of the latent representation
             self.config["hidden_proj"], # the dimension of the hidden layer
             self.config["output_proj"], # the dimension of the output layer
@@ -164,6 +171,13 @@ class PHTwins:
             self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
             self.config["config_path"] = config_path
         self.pretrained_model = BarlowTwins(
+            self.config["input_dim"], # the dimension of the input
+            self.config["hidden_mlp"], # the dimension of the hidden layer
+            self.config["hidden_attn"], # the dimension of the hidden layer
+            self.config["dropout_mlp"], # the dropout rate
+            self.config["dropout_attn"], # the dropout rate
+            self.config["hidden_hist"], # the dimension of the hidden layer
+            self.config["dropout_hist"], # the dropout rate
             self.config["latent_dim"], # the dimension of the latent representation
             self.config["hidden_dim"], # the dimension of the hidden layer
             self.config["output_dim"], # the dimension of the output layer
@@ -182,6 +196,13 @@ class PHTwins:
             self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
             self.config["config_path"] = config_path
         init_bt_model = BarlowTwins(
+            self.config["input_dim"], # the dimension of the input
+            self.config["hidden_mlp"], # the dimension of the hidden layer
+            self.config["hidden_attn"], # the dimension of the hidden layer
+            self.config["dropout_mlp"], # the dropout rate
+            self.config["dropout_attn"], # the dropout rate
+            self.config["hidden_hist"], # the dimension of the hidden layer
+            self.config["dropout_hist"], # the dropout rate
             self.config["latent_dim"], # the dimension of the latent representation
             self.config["hidden_proj"], # the dimension of the hidden layer
             self.config["output_proj"], # the dimension of the output layer
