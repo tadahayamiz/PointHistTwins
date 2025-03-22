@@ -98,6 +98,9 @@ class PointHistDataset(Dataset):
             label = torch.tensor(label, dtype=torch.long)
         except ValueError:
             pass # if label is None
+
+        print(f"pointcloud: {pointcloud.shape}, hist: {hist.shape}, label: {label}")
+
         return (pointcloud, hist), label
 
 
