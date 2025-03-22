@@ -30,7 +30,7 @@ class BarlowTwins(nn.Module):
     """
     def __init__(
             self, input_dim, hidden_mlp, hidden_attn, dropout_mlp, dropout_attn, # for PointEncoder
-            hidden_hist, dropout_hist, # for HistEncoder
+            hist_dim, hidden_hist, dropout_hist, # for HistEncoder
             latent_dim, hidden_proj, output_proj, num_proj=2, lambd=0.005, scale_factor=1, # for BarlowTwins
             ):
         """
@@ -52,7 +52,7 @@ class BarlowTwins(nn.Module):
         super().__init__()
         # encoder
         self.point_encoder = PointEncoder(input_dim, hidden_mlp, latent_dim, hidden_attn, dropout_mlp, dropout_attn)
-        self.hist_encoder = HistEncoder(input_dim, hidden_hist, latent_dim, dropout_hist)
+        self.hist_encoder = HistEncoder(hist_dim, hidden_hist, latent_dim, dropout_hist)
         # projector
         layers = []
         in_features = latent_dim

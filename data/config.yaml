@@ -24,20 +24,21 @@ dropout_mlp: 0.5
 hidden_attn: 64
 dropout_attn: 0.3
 # === HistEncoder ===
+hist_dim: 16
 hidden_hist: 64
 # output_hist: 128 # this is the same as latent_dim
 dropout_hist: 0.3
 # === Linear head ===
 # latent_dim: 128
-num_classes: 10
+num_classes: 2
 num_layers: 2
 hidden_head: 512
 dropout_head: 0.3
 frozen: False
 use_pretrain_loss: False
 # === Training ===
-batch_size: 256
-epochs: 100
+batch_size: 32
+epochs: 2
 lr: 1e-3
 weight_decay: 1e-3
 save_model_every: 0
