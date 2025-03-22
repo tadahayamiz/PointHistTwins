@@ -36,6 +36,8 @@ class PHTwins:
         if exp_name is None:
             exp_name = f"exp-{datetime.today().strftime('%y%m%d')}"
         self.config["exp_name"] = exp_name
+        if outdir is not None:
+            self.config["outdir"] = outdir
         self.outdir = outdir
         self.pretrained_model = None
         self.finetuned_model = None
