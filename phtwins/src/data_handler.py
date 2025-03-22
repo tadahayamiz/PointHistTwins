@@ -79,7 +79,7 @@ class PointHistDataset(Dataset):
         key = self.idx2id[idx]
         data = self.df[self.df[self.key_identify] == key]
         # get point cloud
-        pointcloud = np.array(data[self.keys_data], dtype=np.float32)
+        pointcloud = np.array(data[self.key_data], dtype=np.float32)
         # limit the number of points if necessary (random sampling)
         if pointcloud.shape[0] > self.num_points:
             idxs = np.random.choice(pointcloud.shape[0], self.num_points, replace=False)
