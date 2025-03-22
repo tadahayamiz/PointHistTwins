@@ -73,6 +73,7 @@ class PHTwins:
             input_dim=self.config["hist_dim"], # the dimension of the input
             hidden_hist=self.config["hidden_hist"], # the dimension of the hidden layer
             dropout_hist=self.config["dropout_hist"], # the dropout rate
+            num_blocks=self.config["num_blocks"], # the number of blocks in the ResNet
             latent_dim=self.config["latent_dim"], # the dimension of the latent representation
             hidden_proj=self.config["hidden_proj"], # the dimension of the hidden layer
             output_proj=self.config["output_proj"], # the dimension of the output layer
@@ -207,6 +208,7 @@ class PHTwins:
             self.config["hist_dim"], # the dimension of the input
             self.config["hidden_hist"], # the dimension of the hidden layer
             self.config["dropout_hist"], # the dropout rate
+            self.config["num_blocks"], # the number of blocks in the ResNet
             self.config["latent_dim"], # the dimension of the latent representation
             self.config["hidden_dim"], # the dimension of the hidden layer
             self.config["output_dim"], # the dimension of the output layer
@@ -228,6 +230,7 @@ class PHTwins:
             self.config["hist_dim"], # the dimension of the input
             self.config["hidden_hist"], # the dimension of the hidden layer
             self.config["dropout_hist"], # the dropout rate
+            self.config["num_blocks"], # the number of blocks in the ResNet
             self.config["latent_dim"], # the dimension of the latent representation
             self.config["hidden_proj"], # the dimension of the hidden layer
             self.config["output_proj"], # the dimension of the output layer
