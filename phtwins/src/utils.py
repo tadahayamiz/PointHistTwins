@@ -116,6 +116,8 @@ def progress_plot(
     ax.legend()
     plt.tight_layout()
     plt.savefig(fileout, dpi=300, bbox_inches='tight')
+    plt.show()
+    plt.close()
 
 
 def calc_elapsed_time(start_time):

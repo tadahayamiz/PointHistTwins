@@ -15,7 +15,7 @@ import torch.optim as optim
 from schedulefree import RAdamScheduleFree
 import numpy as np
 import pandas as pd
-import yaml
+import os, yaml
 from datetime import datetime
 
 from .src.barlow import BarlowTwins, LinearHead
@@ -136,28 +136,30 @@ class PHTwins:
         return np.concatenate(preds), np.concatenate(probs)
 
 
-    def get_representation(self, data_loader=None):
+    def get_representation(self, dataset=None, indices:list=[]):
         """
         get representation
         note: pretrained model weight is changed after finetuning.
         
         """
-        if data_loader is None:
-            raise ValueError("!! Give data_loader !!")
+        if dataset is None:
+            dataset = self.train_dataset
         if self.pretrained_model is None:
             raise ValueError("!! fit or load_model first !!")
         self.pretrained_model.eval()
+        num_data = len(dataset)
+        if len(indices) == 0:
+            indices = list(range(num_data))
         reps = []
         with torch.no_grad():
-            for data, _ in data_loader:
-                point, hist = (x.to(self.device) for x in data)
+            for i in indices:
+                point, hist = (x.to(self.device) for x in dataset[i])
                 (z1, z2), _ = self.pretrained_model(point, hist)
                 output = (z1 + z2) / 2 # average two features
                 reps.append(output.cpu().numpy())
         return np.concatenate(reps)
 
 
-    # ToDo: implement this
     def check_data(self, dataset, indices:list=[], bins=16, output:str="", nrow:int=3, ncol:int=4):
         """
         check data
@@ -172,6 +174,33 @@ class PHTwins:
         """
         point_list = [dataset[i][0][0].numpy() for i in indices] # ((point, hist), label)
         plot_hist(point_list, bins, nrow, ncol, output)
+
+
+    def qual_eval(self, dataset, query_indices, bins=16, outdir:str=""):
+        """
+        qualitative evaluation
+        
+        Parameters
+        ----------
+        dataset: torch.utils.data.Dataset
+            the PHTwins dataset
+
+        indices: list
+            the list of indices to be checked
+        
+        """
+        # get representations
+        reps = self.get_representation(dataset) # default: train dataset
+        # query data
+        query_reps = reps[query_indices]
+        # calculate cosine similarity
+        sim_matrix = np.dot(query_reps, reps.T) / (np.linalg.norm(query_reps, axis=1)[:, None] * np.linalg.norm(reps, axis=1))
+        # plot query, most similar, and least similar
+        for i, idx in enumerate(query_indices):
+            output = os.path.join(outdir, f"qual_eval_{i}.tif")
+            indices = np.argsort(sim_matrix[i])[::-1]
+            self.check_data(dataset, [idx] + list(indices[0]) + list(indices[-1]), 16, output, 1, 3)
+            # nrows, ncols = 1, 3 (query / most similar / least similar)
 
 
     def load_pretrained(self, model_path: str, config_path: str=None):
