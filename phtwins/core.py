@@ -29,6 +29,8 @@ class PHTwins:
             ):
         self.df = df # DataFrame containing the point data and label
         self.test_df = test_df # DataFrame containing the point data and label
+        self.train_dataset = None
+        self.test_dataset = None
         with open(config_path, "r") as f:
             self.config = yaml.safe_load(f)
         self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
@@ -45,20 +47,20 @@ class PHTwins:
 
     def prep_data(self, key_identify:str, key_data:list, key_label:str):
         """ prepare data """
-        train_dataset = PointHistDataset(
+        self.train_dataset = PointHistDataset(
             self.df, key_identify, key_data, key_label, self.config["num_points"], self.config["bins"]
         )
         train_loader = prep_dataloader(
-            train_dataset, self.config["batch_size"], True, self.config["num_workers"], self.config["pin_memory"]
+            self.train_dataset, self.config["batch_size"], True, self.config["num_workers"], self.config["pin_memory"]
             )
         if self.test_df is None:
             return train_loader, None
         else:
-            test_dataset = PointHistDataset(
+            self.test_dataset = PointHistDataset(
                 self.test_df, key_identify, key_data, key_label, self.config["num_points"], self.config["bins"]
             )
             test_loader = prep_dataloader(
-                test_dataset, self.config["batch_size"], False, self.config["num_workers"], self.config["pin_memory"]
+                self.test_dataset, self.config["batch_size"], False, self.config["num_workers"], self.config["pin_memory"]
                 )
             return train_loader, test_loader
 
@@ -158,12 +160,9 @@ class PHTwins:
 
 
     # ToDo: implement this
-    def check_data(self, dataloader, indices:list=[], bins=16, output:str="", nrow:int=3, ncol:int=4):
+    def check_data(self, dataset, indices:list=[], bins=16, output:str="", nrow:int=3, ncol:int=4):
         """ check data """
-        point_list = []
-        for i, (data, _) in enumerate(dataloader):
-            if i in indices:
-                point_list.append(data[0].numpy())
+        point_list = [dataset[i].numpy() for i in indices]
         # plot
         plot_hist(point_list, bins, nrow, ncol, output)
 
