@@ -28,8 +28,7 @@ class BarlowTwins(nn.Module):
 
     """
     def __init__(
-            self, input_dim, hidden_mlp, hidden_attn, dropout_mlp, dropout_attn, # for PointEncoder
-            hidden_hist, dropout_hist, # for HistEncoder
+            self, input_dim, hidden_hist, dropout_hist, # for HistEncoder
             latent_dim, hidden_proj, output_proj, num_proj=2, lambd=0.005, scale_factor=1, # for BarlowTwins
             ):
         """
