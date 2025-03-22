@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import torch
 
 
-def save_experiment(config, model, history, plot_progress=True):
+def save_experiment(config, model, optimizer, history, plot_progress=True):
     """
     save the experiment: config, model, metrics, and progress plot
     
@@ -39,7 +39,7 @@ def save_experiment(config, model, history, plot_progress=True):
     with open(historyfile, 'w') as f:
         json.dump(history, f, sort_keys=True, indent=4)
     # save the model
-    save_checkpoint(model=model, name="final", outdir=outdir)
+    save_checkpoint(model=model, optimizer=optimizer, name="final", outdir=outdir)
     # plot progress
     if plot_progress:
         progress_plot(
@@ -49,7 +49,7 @@ def save_experiment(config, model, history, plot_progress=True):
         )
 
 
-def save_checkpoint(model, name, outdir):
+def save_checkpoint(model, optimizer, name, outdir):
     """
     save the model checkpoint
     
@@ -58,7 +58,7 @@ def save_checkpoint(model, name, outdir):
     torch.save(
         {
             "model": model.state_dict(),
-            "optimizer": model.optimizer.state_dict(),
+            "optimizer": optimizer.state_dict(),
         },
         cpfile
     )

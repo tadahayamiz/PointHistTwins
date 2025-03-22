@@ -187,11 +187,11 @@ class Trainer:
                     break
             # save the model
             if self.save_model_every > 0 and (i + 1) % self.save_model_every == 0:
-                save_checkpoint(model=self.model, name=f"epoch_{i + 1}", outdir=self.resdir)
+                save_checkpoint(model=self.model, optimizer=self.optimizer, name=f"epoch_{i + 1}", outdir=self.resdir)
         # save the experiment
         elapsed_time = calc_elapsed_time(start_time)
         self.history["elapsed_time"] = elapsed_time
-        save_experiment(config=self.config, model=self.model, history=self.history)
+        save_experiment(config=self.config, model=self.model, optimizer=self.optimizer, history=self.history)
 
 
     def train_epoch(self, trainloader):
