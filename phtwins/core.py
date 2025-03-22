@@ -165,7 +165,7 @@ class PHTwins:
             if i in indices:
                 point_list.append(data[0].numpy())
         # plot
-        plot_hist(point_list, bins, output, nrow, ncol)
+        plot_hist(point_list, bins, nrow, ncol, output)
 
 
     def load_pretrained(self, model_path: str, config_path: str=None):

@@ -29,7 +29,7 @@ def calc_hist(X, bins=16) -> np.ndarray:
     return hist
 
 
-def plot_hist(X_list, bins=16, nrow=1, ncol=1):
+def plot_hist(X_list, bins=16, nrow=1, ncol=1, output=""):
     """
     plot histograms
 
@@ -73,6 +73,8 @@ def plot_hist(X_list, bins=16, nrow=1, ncol=1):
     for j in range(num_plots, len(axes)):
         fig.delaxes(axes[j])
     plt.tight_layout()
+    if output != "":
+        plt.savefig(output)
     plt.show()
     plt.close()
 
