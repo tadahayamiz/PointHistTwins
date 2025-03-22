@@ -172,8 +172,7 @@ class PHTwins:
             the list of indices to be checked
         
         """
-        point_list = [dataset[i][0].numpy() for i in indices]
-        # plot
+        point_list = [dataset[i][0][0].numpy() for i in indices] # ((point, hist), label)
         plot_hist(point_list, bins, nrow, ncol, output)
 
 
