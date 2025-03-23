@@ -168,6 +168,12 @@ class PHTwins:
         
         """
         hist_list = [dataset[i][0][0].numpy() for i in indices] # ((hist, hist), label)
+
+
+        for hist in hist_list:
+            print(hist.shape)
+
+
         plot_hist(hist_list, bins, nrow, ncol, output)
 
 
@@ -186,6 +192,11 @@ class PHTwins:
         """
         # get representations
         reps = self.get_representation(dataset) # default: train dataset
+
+
+        print("reps.shape", reps.shape)
+
+
         # query data
         query_reps = reps[query_indices]
         # calculate cosine similarity
