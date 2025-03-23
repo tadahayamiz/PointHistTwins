@@ -190,14 +190,11 @@ class PHTwins:
         query_reps = reps[query_indices]
         # calculate cosine similarity
         sim_matrix = np.dot(query_reps, reps.T) / (np.linalg.norm(query_reps, axis=1)[:, None] * np.linalg.norm(reps, axis=1))
-
-        print(sim_matrix)
-
         # plot query, most similar, and least similar
         for i, idx in enumerate(query_indices):
             output = os.path.join(outdir, f"qual_eval_{i}.tif")
-            indices = np.argsort(sim_matrix[i].flatten())[::-1]
-            self.check_data(dataset, [idx] + list(indices[0]) + list(indices[-1]), 16, output, 1, 3)
+            indices = np.argsort(sim_matrix[i])[::-1]
+            self.check_data(dataset, [idx] + [indices[0]] + [indices[-1]], 16, output, 1, 3)
             # nrows, ncols = 1, 3 (query / most similar / least similar)
 
 
