@@ -239,7 +239,7 @@ class Trainer:
                 label = label.to(self.device)
                 # Forward pass
                 output, pt_loss = self.model(hist0, hist1)
-                ft_loss = self.model.loss_fn(output, label)
+                ft_loss = self.loss_fn(output, label)
                 loss = pt_loss + ft_loss if self.use_pretrain_loss else ft_loss
                 # Loss accumulation
                 batch_size = hist0.shape[0]
