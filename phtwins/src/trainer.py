@@ -122,7 +122,7 @@ class PreTrainer:
 
 # ToDo: implement Trainer class
 class Trainer:
-    def __init__(self, model, config, loss_fn, optimizer, device):
+    def __init__(self, config, model, loss_fn, optimizer, device):
         self.config = config
         self.model = model.to(device)
         self.loss_fn = loss_fn
