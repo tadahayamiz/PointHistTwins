@@ -78,7 +78,7 @@ def plot_hist0(hist_list, bins=16, nrow=1, ncol=1, output=""):
     plt.close()
 
 
-def plot_hist(hist_list, bins=16, nrow=1, ncol=1, output=""):
+def plot_hist0(hist_list, bins=16, nrow=1, ncol=1, output=""):
     """
     Plot histograms (1D, 2D, and 3D).
     
@@ -131,6 +131,71 @@ def plot_hist(hist_list, bins=16, nrow=1, ncol=1, output=""):
     if output:
         plt.savefig(output)
 
+    plt.show()
+    plt.close()
+
+
+def plot_hist(hist_list, nrow=1, ncol=1, output="", **plot_params):
+    """
+    Plot histograms (1D, 2D).
+
+    Parameters:
+    ----------
+    hist_list : list of np.ndarray
+        List of histograms to plot.
+    nrow : int, optional
+        Number of rows in the subplot grid (default: 1).
+    ncol : int, optional
+        Number of columns in the subplot grid (default: 1).
+    output : str, optional
+        File path to save the plot (default: "", meaning no save).
+    **plot_params : dict, optional
+        Dictionary containing plot customization options:
+            - xlabel (str): Label for x-axis
+            - ylabel (str): Label for y-axis
+            - title_list (list of str): Titles for each subplot
+            - cmap (str): Colormap for 2D histograms
+            - aspect (str): Aspect ratio for 2D histograms (default: 'equal')
+            - color (str): Bar color for 1D histograms (default: 'royalblue')
+            - alpha (float): Transparency for 1D histograms (default: 0.7)
+    """
+    # Default plot parameters
+    default_params = {
+        "xlabel": "Bins",
+        "ylabel": "Frequency",
+        "title_list": None,
+        "cmap": "viridis",
+        "aspect": "equal",
+        "color": "royalblue",
+        "alpha": 0.7
+    }
+    # merge default and custom params
+    params = {**default_params, **plot_params}
+    num_plots = len(hist_list)
+    fig, axes = plt.subplots(nrow, ncol, figsize=(5 * ncol, 5 * nrow))
+    axes = np.atleast_1d(axes).flatten()  # Flatten for easy iteration
+    for i, hist in enumerate(hist_list):
+        ax = axes[i]
+        dim = hist.ndim  # Detect dimensionality
+        if dim == 1:
+            ax.bar(range(len(hist)), hist, width=0.8, color=params["color"], alpha=params["alpha"])
+            ax.set_xlabel(params["xlabel"])
+            ax.set_ylabel(params["ylabel"])
+            ax.set_title(params["title_list"][i] if params["title_list"] else f'1D Histogram {i+1}')
+        elif dim == 2:
+            im = ax.imshow(hist.T, origin='lower', cmap=params["cmap"], aspect=params["aspect"])
+            fig.colorbar(im, ax=ax, label=params["ylabel"])
+            ax.set_xlabel(params["xlabel"])
+            ax.set_ylabel(params["ylabel"])
+            ax.set_title(params["title_list"][i] if params["title_list"] else f'2D Histogram {i+1}')
+        else:
+            raise NotImplementedError("Only 1D and 2D histograms are supported.")
+    # Remove unused subplots
+    for j in range(num_plots, len(axes)):
+        fig.delaxes(axes[j])
+    plt.tight_layout()
+    if output:
+        plt.savefig(output)
     plt.show()
     plt.close()
 
