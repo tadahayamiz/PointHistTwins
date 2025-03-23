@@ -147,7 +147,7 @@ class PHTwins:
         reps = []
         with torch.no_grad():
             for i in indices:
-                data = dataset[i]
+                data, _ = dataset[i]
                 hist0, hist1 = (x.to(self.device) for x in data)
                 (z1, z2), _ = self.pretrained_model(hist0, hist1)
                 output = (z1 + z2) / 2 # average two features
