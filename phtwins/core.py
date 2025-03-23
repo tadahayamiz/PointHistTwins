@@ -155,7 +155,7 @@ class PHTwins:
         return np.vstack(reps)
 
 
-    def check_data(self, dataset, indices:list=[], bins=16, output:str="", nrow:int=3, ncol:int=4):
+    def check_data(self, dataset, indices:list=[], bins=16, nrow:int=3, ncol:int=4, output:str=""):
         """
         check data
         
@@ -167,7 +167,7 @@ class PHTwins:
             the list of indices to be checked
         
         """
-        hist_list = [dataset[i][0][0].numpy() for i in indices] # ((point, hist), label)
+        hist_list = [dataset[i][0][0].numpy() for i in indices] # ((hist, hist), label)
         plot_hist(hist_list, bins, nrow, ncol, output)
 
 
@@ -198,7 +198,7 @@ class PHTwins:
         for i, idx in enumerate(query_indices):
             output = os.path.join(outdir, f"qual_eval_{i}.tif")
             indices = np.argsort(sim_matrix[i])[::-1]
-            self.check_data(dataset, [idx] + [indices[0]] + [indices[-1]], self.config["bins"], output, 1, 3)
+            self.check_data(dataset, [idx] + [indices[0]] + [indices[-1]], self.config["bins"], 1, 3, output)
             # nrows, ncols = 1, 3 (query / most similar / least similar)
 
 
