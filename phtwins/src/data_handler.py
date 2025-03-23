@@ -170,6 +170,7 @@ def plot_hist(hist_list, output="", **plot_params):
     # merge default and custom params
     params = {**default_params, **plot_params}
     num_plots = len(hist_list)
+    nrow, ncol = params["nrow"], params["ncol"]
     fig, axes = plt.subplots(nrow, ncol, figsize=(5 * ncol, 5 * nrow))
     axes = np.atleast_1d(axes).flatten()  # Flatten for easy iteration
     for i, hist in enumerate(hist_list):
