@@ -29,7 +29,7 @@ def calc_hist(X, bins=16) -> np.ndarray:
     return hist
 
 
-def plot_hist(hist_list, bins=16, nrow=1, ncol=1, output=""):
+def plot_hist0(hist_list, bins=16, nrow=1, ncol=1, output=""):
     """
     plot histograms
 
@@ -74,6 +74,63 @@ def plot_hist(hist_list, bins=16, nrow=1, ncol=1, output=""):
     plt.tight_layout()
     if output != "":
         plt.savefig(output)
+    plt.show()
+    plt.close()
+
+
+def plot_hist(hist_list, bins=16, nrow=1, ncol=1, output=""):
+    """
+    Plot histograms (1D, 2D, and 3D).
+    
+    Parameters:
+    ----------
+    hist_list : list of np.ndarray
+        List of histograms to plot.
+    bins : int, optional
+        Number of bins (default: 16).
+    nrow : int, optional
+        Number of rows in the subplot grid (default: 1).
+    ncol : int, optional
+        Number of columns in the subplot grid (default: 1).
+    output : str, optional
+        File path to save the plot (default: "", meaning no save).
+    """
+    num_plots = len(hist_list)
+    fig, axes = plt.subplots(nrow, ncol, figsize=(5 * ncol, 5 * nrow))
+
+    # Ensure axes is a list
+    axes = np.atleast_1d(axes).flatten()
+
+    for i, hist in enumerate(hist_list):
+        ax = axes[i]
+        dim = hist.ndim  # Fix dimension detection
+        
+        if dim == 1:
+            ax.bar(range(len(hist)), hist, width=0.8, color='royalblue', alpha=0.7)
+            ax.set_xlabel('Bins')
+            ax.set_ylabel('Frequency')
+            ax.set_title(f'1D Histogram {i+1}')
+        
+        elif dim == 2:
+            im = ax.imshow(hist.T, origin='lower', cmap='viridis', aspect='auto')
+            fig.colorbar(im, ax=ax, label='Frequency')
+            ax.set_xlabel('X Bins')
+            ax.set_ylabel('Y Bins')
+            ax.set_title(f'2D Histogram {i+1}')
+        
+        elif dim == 3:
+            raise NotImplementedError
+
+    # Remove unused subplots
+    if num_plots < len(axes):
+        for j in range(num_plots, len(axes)):
+            fig.delaxes(axes[j])
+    
+    plt.tight_layout()
+    
+    if output:
+        plt.savefig(output)
+
     plt.show()
     plt.close()
 
