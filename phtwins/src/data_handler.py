@@ -135,7 +135,7 @@ def plot_hist0(hist_list, bins=16, nrow=1, ncol=1, output=""):
     plt.close()
 
 
-def plot_hist(hist_list, nrow=1, ncol=1, output="", **plot_params):
+def plot_hist(hist_list, output="", **plot_params):
     """
     Plot histograms (1D, 2D).
 
@@ -143,10 +143,6 @@ def plot_hist(hist_list, nrow=1, ncol=1, output="", **plot_params):
     ----------
     hist_list : list of np.ndarray
         List of histograms to plot.
-    nrow : int, optional
-        Number of rows in the subplot grid (default: 1).
-    ncol : int, optional
-        Number of columns in the subplot grid (default: 1).
     output : str, optional
         File path to save the plot (default: "", meaning no save).
     **plot_params : dict, optional
@@ -161,8 +157,10 @@ def plot_hist(hist_list, nrow=1, ncol=1, output="", **plot_params):
     """
     # Default plot parameters
     default_params = {
-        "xlabel": "Bins",
-        "ylabel": "Frequency",
+        "nrow": 1,
+        "ncol": 3,
+        "xlabel": "x",
+        "ylabel": "y",
         "title_list": None,
         "cmap": "viridis",
         "aspect": "equal",

@@ -155,7 +155,7 @@ class PHTwins:
         return np.vstack(reps)
 
 
-    def check_data(self, dataset, indices:list=[], nrow:int=3, ncol:int=4, output:str="", **plot_params):
+    def check_data(self, dataset, indices:list=[], output:str="", **plot_params):
         """
         check data
         
@@ -165,16 +165,25 @@ class PHTwins:
             the PHTwins dataset
         indices: list
             the list of indices to be checked
-        nrow, ncol: int
-            the number of rows and columns in the plot
         output: str
             the output path
         plot_params: dict
             the parameters for the plot
+            default_params = {
+                "nrow": 1,
+                "ncol": 3,
+                "xlabel": "x",
+                "ylabel": "y",
+                "title_list": None,
+                "cmap": "viridis",
+                "aspect": "equal",
+                "color": "royalblue",
+                "alpha": 0.7
+            }
         
         """
         hist_list = [dataset[i][0][0].numpy()[0] for i in indices] # ((hist, hist), label)
-        plot_hist(hist_list, nrow, ncol, output, **plot_params)
+        plot_hist(hist_list, output, **plot_params)
 
 
     def qual_eval(self, dataset, query_indices, outdir:str=""):
@@ -205,8 +214,12 @@ class PHTwins:
             output = os.path.join(outdir, f"qual_eval_{i}.tif")
             indices = np.argsort(sim_matrix[i])[::-1]
             plot_indices = [idx] + [indices[0]] + [indices[-1]]
-            plot_params = {"title_list": ["query", "most similar", "least similar"]}
-            self.check_data(dataset, plot_indices, self.config["bins"], 1, 3, output, **plot_params)
+            plot_params = {
+                "title_list": ["query", "most similar", "least similar"],
+                "nrow": 1,
+                "ncol": 3,
+                }
+            self.check_data(dataset, plot_indices, output, **plot_params)
             # nrows, ncols = 1, 3 (query / most similar / least similar)
 
 
