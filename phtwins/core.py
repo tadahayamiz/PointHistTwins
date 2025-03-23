@@ -151,8 +151,8 @@ class PHTwins:
                 hist0, hist1 = (x.to(self.config["device"]).unsqueeze(0) for x in data)  # add batch dimension
                 (z1, z2), _ = self.pretrained_model(hist0, hist1)
                 output = (z1 + z2) / 2  # average two features
-                reps.append(output.squeeze(0).cpu())  # del batch dimension
-        return np.concatenate(reps)
+                reps.append(output.cpu().numpy().reshape(1, -1))  # del batch dimension
+        return np.vstack(reps)
 
 
     def check_data(self, dataset, indices:list=[], bins=16, output:str="", nrow:int=3, ncol:int=4):
