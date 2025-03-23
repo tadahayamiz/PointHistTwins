@@ -170,9 +170,10 @@ class Trainer:
             self.history["train_accuracy"].append(train_acc)
             self.history["test_loss"].append(test_loss)
             self.history["test_accuracy"].append(test_acc)
-            print(f"Epoch: {i + 1}")
-            print(f"  Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}")
-            print(f"  Train accuracy: {train_acc:.4f}, Test accuracy: {test_acc:.4f}")
+            if (i + 1) % 10 == 0:
+                print(f"Epoch: {i + 1}")
+                print(f"  Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}")
+                print(f"  Train accuracy: {train_acc:.4f}, Test accuracy: {test_acc:.4f}")
             # early stopping
             if self.patience is not None:
                 if test_loss < self.best_loss:
