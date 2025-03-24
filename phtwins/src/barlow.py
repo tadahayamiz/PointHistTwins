@@ -54,11 +54,12 @@ class BarlowTwins(nn.Module):
         layers = []
         in_features = latent_dim
         for i in range(num_proj):
-            layers.append(nn.Linear(in_features, hidden_proj, bias=False)) # bias=False, due to BN
-            layers.append(nn.BatchNorm1d(hidden_proj))
+            layers.append(nn.Linear(in_features, hidden_proj))
+            layers.append(nn.LayerNorm(hidden_proj))
+            layers.append(nn.Dropout(dropout_hist))
             layers.append(nn.ReLU(inplace=True))
             in_features = hidden_proj
-        layers.append(nn.Linear(hidden_proj, output_proj, bias=False)) # bias=False, due to BN
+        layers.append(nn.Linear(hidden_proj, output_proj))
         self.projector = nn.Sequential(*layers)
         # normalization layer for z1 and z2
         self.bn = nn.BatchNorm1d(output_proj, affine=False) # no learnable parameters
