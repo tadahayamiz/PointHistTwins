@@ -56,8 +56,8 @@ class BarlowTwins(nn.Module):
         for i in range(num_proj):
             layers.append(nn.Linear(in_features, hidden_proj))
             layers.append(nn.LayerNorm(hidden_proj))
-            layers.append(nn.Dropout(dropout_hist))
             layers.append(nn.ReLU(inplace=True))
+            layers.append(nn.Dropout(dropout_hist))
             in_features = hidden_proj
         layers.append(nn.Linear(hidden_proj, output_proj))
         self.projector = nn.Sequential(*layers)

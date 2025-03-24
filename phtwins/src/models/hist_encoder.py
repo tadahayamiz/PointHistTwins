@@ -66,6 +66,7 @@ class HistEncoder(nn.Module):
         # MLP for output
         self.mlp = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),  # Linear
+            nn.LayerNorm(hidden_dim),           # LayerNorm
             nn.ReLU(),                         # ReLU
             nn.Dropout(prob_dropout),          # Dropout
             nn.Linear(hidden_dim, output_dim)  # Linear for output
