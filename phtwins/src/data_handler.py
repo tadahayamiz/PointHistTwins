@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-def calc_hist(X, bins=16) -> np.ndarray:
+def calc_hist(X, bins=16, scaling_factor=1000) -> np.ndarray:
     try:
         s = X.shape[1]
     except IndexError:
@@ -26,7 +26,7 @@ def calc_hist(X, bins=16) -> np.ndarray:
         hist, _ = np.histogramdd(X, bins=bins, density=True)
     else:
         raise ValueError("!! Input array must be 1D, 2D, or 3D. !!")
-    return hist
+    return hist * scaling_factor # scale up for better visualization
 
 
 def plot_hist(hist_list, output="", **plot_params):
