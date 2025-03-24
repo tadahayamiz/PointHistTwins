@@ -21,12 +21,13 @@ from datetime import datetime
 from .src.barlow import BarlowTwins, LinearHead
 from .src.trainer import PreTrainer, Trainer
 from .src.data_handler import PointHistDataset, prep_dataloader, plot_hist
+from .src.utils import fix_seed
 
 class PHTwins:
     """ class for training and prediction """
     def __init__(
             self, config_path: str, df: pd.DataFrame=None, test_df:pd.DataFrame=None,
-            outdir: str=None, exp_name: str=None
+            outdir: str=None, exp_name: str=None, seed: int=42
             ):
         self.df = df # DataFrame containing the point data and label
         self.test_df = test_df # DataFrame containing the point data and label
@@ -44,6 +45,9 @@ class PHTwins:
         self.outdir = outdir
         self.pretrained_model = None
         self.finetuned_model = None
+        # fix seed
+        g, seed_worker = fix_seed(seed, fix_cuda=True)
+        self._seed = {"seed": seed, "g": g, "seed_worker": seed_worker}
 
 
     def prep_data(self, key_identify:str, key_data:list, key_label:str):
@@ -52,7 +56,8 @@ class PHTwins:
             self.df, key_identify, key_data, key_label, self.config["num_points"], self.config["bins"]
         )
         train_loader = prep_dataloader(
-            self.train_dataset, self.config["batch_size"], True, self.config["num_workers"], self.config["pin_memory"]
+            self.train_dataset, self.config["batch_size"], True, self.config["num_workers"],
+            self.config["pin_memory"], self._seed["g"], self._seed["seed_worker"]
             )
         if self.test_df is None:
             return train_loader, None
@@ -61,7 +66,8 @@ class PHTwins:
                 self.test_df, key_identify, key_data, key_label, self.config["num_points"], self.config["bins"]
             )
             test_loader = prep_dataloader(
-                self.test_dataset, self.config["batch_size"], False, self.config["num_workers"], self.config["pin_memory"]
+                self.test_dataset, self.config["batch_size"], False, self.config["num_workers"],
+                self.config["pin_memory"], self._seed["g"], self._seed["seed_worker"]
                 )
             return train_loader, test_loader
 

@@ -281,7 +281,8 @@ class PointHistDataset(Dataset):
 
 
 def prep_dataloader(
-    dataset, batch_size, shuffle=None, num_workers=2, pin_memory=True
+    dataset, batch_size, shuffle=None, num_workers=2, pin_memory=True,
+    g=None, seed_worker=None
     ) -> DataLoader:
     """
     prepare train and test loader
@@ -312,11 +313,7 @@ def prep_dataloader(
         shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
-        worker_init_fn=_worker_init_fn
+        generator=g,
+        worker_init_fn=seed_worker,
         )    
     return loader
-
-
-def _worker_init_fn(worker_id):
-    """ fix the seed for each worker """
-    np.random.seed(np.random.get_state()[1][0] + worker_id)

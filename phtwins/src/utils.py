@@ -7,8 +7,40 @@ utils
 @author: tadahaya
 """
 import json, os, time, yaml
+import random
+import numpy as np
 import matplotlib.pyplot as plt
 import torch
+
+
+def fix_seed(seed: int=42, fix_cuda: bool=False):
+    """
+    fix the seed for reproducibility
+
+    Parameters:
+    ----------
+    seed : int
+        the seed number
+
+    """
+    # general seed
+    random.seed(seed)  # Python random
+    np.random.seed(seed)  # NumPy random
+    torch.manual_seed(seed)  # PyTorch CPU seed
+    torch.cuda.manual_seed(seed)  # PyTorch GPU seed
+    torch.cuda.manual_seed_all(seed)  # PyTorch all GPU seed
+    # cudnn seed
+    if fix_cuda:
+        torch.backends.cudnn.deterministic = True  # for fixing calculation order etc.
+        torch.backends.cudnn.benchmark = False  # do not use the optimized algorithm
+    # prepare worker seed for DataLoader
+    def seed_worker(worker_id):
+        worker_seed = seed + worker_id
+        np.random.seed(worker_seed)
+        random.seed(worker_seed)
+    g = torch.Generator()
+    g.manual_seed(seed)
+    return g, seed_worker  # for worker_init_fn in DataLoader
 
 
 def save_experiment(config, model, optimizer, history, plot_progress=True):
