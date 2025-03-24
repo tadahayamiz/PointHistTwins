@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-def calc_hist(X, bins=16, scaling_factor=1000) -> np.ndarray:
+def calc_hist(X, bins=16, scaling_factor=10000) -> np.ndarray:
     try:
         s = X.shape[1]
     except IndexError:
