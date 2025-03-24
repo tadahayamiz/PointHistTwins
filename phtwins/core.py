@@ -237,16 +237,16 @@ class PHTwins:
             self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
             self.config["config_path"] = config_path
         self.pretrained_model = BarlowTwins(
-            self.config["hist_dim"], # the dimension of the input
-            self.config["hidden_hist"], # the dimension of the hidden layer
-            self.config["dropout_hist"], # the dropout rate
-            self.config["num_blocks"], # the number of blocks in the ResNet
-            self.config["latent_dim"], # the dimension of the latent representation
-            self.config["hidden_dim"], # the dimension of the hidden layer
-            self.config["output_dim"], # the dimension of the output layer
-            self.config["num_projection"], # the number of the projection MLPs
-            self.config["lambd"], # tradeoff parameter
-            self.config["scale_factor"] # factor to scale the loss by
+            input_dim=self.config["hist_dim"], # the dimension of the input
+            hidden_hist=self.config["hidden_hist"], # the dimension of the hidden layer
+            dropout_hist=self.config["dropout_hist"], # the dropout rate
+            num_blocks=self.config["num_blocks"], # the number of blocks in the ResNet
+            latent_dim=self.config["latent_dim"], # the dimension of the latent representation
+            hidden_proj=self.config["hidden_proj"], # the dimension of the hidden layer
+            output_proj=self.config["output_proj"], # the dimension of the output layer
+            num_proj=self.config["num_proj"], # the number of the projection MLPs
+            lambd=self.config["lambd"], # tradeoff parameter
+            scale_factor=self.config["scale_factor"] # factor to scale the loss by
         )
         self.pretrained_model.load_state_dict(torch.load(model_path))
 
