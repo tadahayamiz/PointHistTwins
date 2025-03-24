@@ -25,7 +25,7 @@ from .src.data_handler import PointHistDataset, prep_dataloader, plot_hist
 class PHTwins:
     """ class for training and prediction """
     def __init__(
-            self, config_path: str, df: pd.DataFrame, test_df:pd.DataFrame=None,
+            self, config_path: str, df: pd.DataFrame=None, test_df:pd.DataFrame=None,
             outdir: str=None, exp_name: str=None
             ):
         self.df = df # DataFrame containing the point data and label
