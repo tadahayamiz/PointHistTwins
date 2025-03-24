@@ -19,120 +19,14 @@ def calc_hist(X, bins=16) -> np.ndarray:
     except IndexError:
         s = 1
     if s == 1:
-        hist, _ = np.histogram(X, bins=bins)
+        hist, _ = np.histogram(X, bins=bins, density=True)
     elif s == 2:
-        hist, _, _ = np.histogram2d(X[:, 0], X[:, 1], bins=bins)
+        hist, _, _ = np.histogram2d(X[:, 0], X[:, 1], bins=bins, density=True)
     elif s == 3:
-        hist, _ = np.histogramdd(X, bins=bins)
+        hist, _ = np.histogramdd(X, bins=bins, density=True)
     else:
         raise ValueError("!! Input array must be 1D, 2D, or 3D. !!")
     return hist
-
-
-def plot_hist0(hist_list, bins=16, nrow=1, ncol=1, output=""):
-    """
-    plot histograms
-
-    """
-    num_plots = len(hist_list)
-    fig, axes = plt.subplots(nrow, ncol, figsize=(5 * ncol, 5 * nrow))    
-    # Flatten axes for easy iteration
-    axes = np.array(axes).flatten() if num_plots > 1 else [axes]
-    for i, hist in enumerate(hist_list):
-        ax = axes[i]
-        dim = hist.shape[1] if hist.ndim > 1 else 1  # dimension of the data
-        if dim == 1:
-            ax.bar(range(len(hist)), hist, width=0.8, color='royalblue', alpha=0.7)
-            ax.set_xlabel('Bins')
-            ax.set_ylabel('Frequency')
-            ax.set_title(f'1D Histogram {i+1}')
-        elif dim == 2:
-            im = ax.imshow(hist.T, origin='lower', cmap='viridis', aspect='auto')
-            fig.colorbar(im, ax=ax, label='Frequency')
-            ax.set_xlabel('X Bins')
-            ax.set_ylabel('Y Bins')
-            ax.set_title(f'2D Histogram {i+1}')
-        elif dim == 3:
-            ax = fig.add_subplot(nrow, ncol, i+1, projection='3d')
-            xpos, ypos, zpos = np.meshgrid(
-                np.arange(hist.shape[0]),
-                np.arange(hist.shape[1]),
-                np.arange(hist.shape[2]),
-                indexing="ij"
-            )
-            xpos = xpos.flatten()
-            ypos = ypos.flatten()
-            zpos = zpos.flatten()
-            values = hist.flatten()
-            ax.bar3d(xpos, ypos, np.zeros_like(zpos), 1, 1, values, shade=True, cmap="viridis")
-            ax.set_xlabel('X Bins')
-            ax.set_ylabel('Y Bins')
-            ax.set_zlabel('Frequency')
-            ax.set_title(f'3D Histogram {i+1}')
-    for j in range(num_plots, len(axes)):
-        fig.delaxes(axes[j])
-    plt.tight_layout()
-    if output != "":
-        plt.savefig(output)
-    plt.show()
-    plt.close()
-
-
-def plot_hist0(hist_list, bins=16, nrow=1, ncol=1, output=""):
-    """
-    Plot histograms (1D, 2D, and 3D).
-    
-    Parameters:
-    ----------
-    hist_list : list of np.ndarray
-        List of histograms to plot.
-    bins : int, optional
-        Number of bins (default: 16).
-    nrow : int, optional
-        Number of rows in the subplot grid (default: 1).
-    ncol : int, optional
-        Number of columns in the subplot grid (default: 1).
-    output : str, optional
-        File path to save the plot (default: "", meaning no save).
-    """
-    num_plots = len(hist_list)
-    fig, axes = plt.subplots(nrow, ncol, figsize=(5 * ncol, 5 * nrow))
-
-    # Ensure axes is a list
-    axes = np.atleast_1d(axes).flatten()
-
-    for i, hist in enumerate(hist_list):
-        ax = axes[i]
-        dim = hist.ndim  # Fix dimension detection
-        
-        if dim == 1:
-            ax.bar(range(len(hist)), hist, width=0.8, color='royalblue', alpha=0.7)
-            ax.set_xlabel('Bins')
-            ax.set_ylabel('Frequency')
-            ax.set_title(f'1D Histogram {i+1}')
-        
-        elif dim == 2:
-            im = ax.imshow(hist.T, origin='lower', cmap='viridis', aspect='auto')
-            fig.colorbar(im, ax=ax, label='Frequency')
-            ax.set_xlabel('X Bins')
-            ax.set_ylabel('Y Bins')
-            ax.set_title(f'2D Histogram {i+1}')
-        
-        elif dim == 3:
-            raise NotImplementedError
-
-    # Remove unused subplots
-    if num_plots < len(axes):
-        for j in range(num_plots, len(axes)):
-            fig.delaxes(axes[j])
-    
-    plt.tight_layout()
-    
-    if output:
-        plt.savefig(output)
-
-    plt.show()
-    plt.close()
 
 
 def plot_hist(hist_list, output="", **plot_params):
