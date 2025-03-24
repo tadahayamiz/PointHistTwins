@@ -82,20 +82,21 @@ class PreTrainer:
         self.optimizer.train()
         total_loss = 0.0
         total_samples = 0 # for averaging the loss
-        for data, label in trainloader:
+        # initialize the gradients
+        self.optimizer.zero_grad()
+        for i, (data, label) in enumerate(trainloader):
             # data = (hist, hist)
             hist0, hist1 = (x.to(self.device) for x in data)
             label = label.to(self.device)
-            # initialize the gradients
-            self.optimizer.zero_grad()
             # forward/loss calculation
             _, loss = self.model(hist0, hist1) # output, bt_loss
             # note: loss is averaged over the batch
             # backpropagation
             loss.backward()
             # update the parameters
-            self.optimizer.step()
-            # Loss accumulation
+            if (i + 1) % self.confg["accum_grad"] == 0 or (i + 1) == len(trainloader):
+                self.optimizer.step()  # Perform the parameter update
+                self.optimizer.zero_grad()  # Reset gradients for the next accumulation            # Loss accumulation
             batch_size = hist0.shape[0]
             total_loss += loss.detach().item() * batch_size
             total_samples += batch_size
@@ -202,11 +203,11 @@ class Trainer:
         total_loss = 0.0
         total_samples = 0 # for averaging the loss
         correct = 0
-        for data, label in trainloader:
+        # initialize the gradients
+        self.optimizer.zero_grad()
+        for i, (data, label) in enumerate(trainloader):
             hist0, hist1 = (x.to(self.device) for x in data)
             label = label.to(self.device)
-            # initialize the gradients
-            self.optimizer.zero_grad()
             # forward calculation
             output, pt_loss = self.model(hist0, hist1)
             ft_loss = self.loss_fn(output, label)
@@ -214,7 +215,9 @@ class Trainer:
             # backpropagation
             loss.backward()
             # update the parameters
-            self.optimizer.step()
+            if (i + 1) % self.confg["accum_grad"] == 0 or (i + 1) == len(trainloader):
+                self.optimizer.step()  # Perform the parameter update
+                self.optimizer.zero_grad()  # Reset gradients for the next accumulation
             # Loss accumulation
             batch_size = hist0.shape[0]
             total_loss += loss.detach().item() * batch_size
