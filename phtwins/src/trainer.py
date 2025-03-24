@@ -94,7 +94,7 @@ class PreTrainer:
             # backpropagation
             loss.backward()
             # update the parameters
-            if (i + 1) % self.confg["accum_grad"] == 0 or (i + 1) == len(trainloader):
+            if (i + 1) % self.config["accum_grad"] == 0 or (i + 1) == len(trainloader):
                 self.optimizer.step()  # Perform the parameter update
                 self.optimizer.zero_grad()  # Reset gradients for the next accumulation            # Loss accumulation
             batch_size = hist0.shape[0]
@@ -215,7 +215,7 @@ class Trainer:
             # backpropagation
             loss.backward()
             # update the parameters
-            if (i + 1) % self.confg["accum_grad"] == 0 or (i + 1) == len(trainloader):
+            if (i + 1) % self.config["accum_grad"] == 0 or (i + 1) == len(trainloader):
                 self.optimizer.step()  # Perform the parameter update
                 self.optimizer.zero_grad()  # Reset gradients for the next accumulation
             # Loss accumulation
