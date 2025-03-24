@@ -8,6 +8,7 @@ trainer
 """
 import os, time
 import torch
+from torch.nn.utils import clip_grad_norm_
 
 from .utils import save_experiment, save_checkpoint, calc_elapsed_time
 
@@ -93,6 +94,9 @@ class PreTrainer:
             # note: loss is averaged over the batch
             # backpropagation
             loss.backward()
+            # clip the gradients
+            if self.config["clip_grad"] > 0:
+                clip_grad_norm_(self.model.parameters(), self.config["clip_grad"])
             # update the parameters
             if (i + 1) % self.config["accum_grad"] == 0 or (i + 1) == len(trainloader):
                 self.optimizer.step()  # Perform the parameter update
@@ -214,6 +218,9 @@ class Trainer:
             loss = pt_loss + ft_loss if self.use_pretrain_loss else ft_loss
             # backpropagation
             loss.backward()
+            # clip the gradients
+            if self.config["clip_grad"] > 0:
+                clip_grad_norm_(self.model.parameters(), self.config["clip_grad"])
             # update the parameters
             if (i + 1) % self.config["accum_grad"] == 0 or (i + 1) == len(trainloader):
                 self.optimizer.step()  # Perform the parameter update
