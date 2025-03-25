@@ -227,6 +227,7 @@ class PHTwins:
                 }
             self.check_data(dataset, plot_indices, output, **plot_params)
             # nrows, ncols = 1, 3 (query / most similar / least similar)
+        return sim_matrix
 
 
     def load_pretrained(self, model_path: str, config_path: str=None):
