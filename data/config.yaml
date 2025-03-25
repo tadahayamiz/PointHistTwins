@@ -5,7 +5,7 @@ device: null
 outdir: null
 exp_name: null
 # === Data ===
-num_points: 1024
+num_points: 4096
 bins: 64
 num_workers: 4
 pin_memory: True
@@ -33,7 +33,7 @@ use_pretrain_loss: False
 # === Training ===
 batch_size: 32
 epochs: 2000
-lr: 1e-3
+lr: 0.01
 accum_grad: 4
 clip_grad: 1.0
 save_model_every: 200
