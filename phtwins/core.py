@@ -208,7 +208,7 @@ class PHTwins:
         # get representations
         reps = self.get_representation(dataset) # default: train dataset
         # standardize
-        reps = (reps - reps.mean(axis=0)) / reps.std(axis=0)
+        # reps = (reps - reps.mean(axis=0)) / reps.std(axis=0)
         # query data
         query_reps = reps[query_indices]
         # calculate cosine similarity
