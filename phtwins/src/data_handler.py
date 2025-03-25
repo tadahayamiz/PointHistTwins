@@ -172,6 +172,21 @@ class PointHistDataset(Dataset):
         except ValueError:
             pass # if label is None
         return (hist0, hist1), label
+    
+    def get_meta(self) -> pd.DataFrame:
+        """
+        get meta data that contains:
+            - index
+            - identifier
+            - label
+        
+        """
+        meta = pd.DataFrame({
+            "index": list(range(self.num_data)),
+            "identifier": list(self.idx2id.values()),
+            "label": [self.id2label[k] for k in self.idx2id.values()]
+            })
+        return meta
 
 
 def prep_dataloader(
