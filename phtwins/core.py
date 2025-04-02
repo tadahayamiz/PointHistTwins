@@ -89,7 +89,7 @@ class PHTwins:
             self.config["frozen"] # whether the pretrained model is frozen
         )
         loss_fn = nn.CrossEntropyLoss()
-        optimizer1 = RAdamScheduleFree(self.finetuned_model_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
+        optimizer1 = RAdamScheduleFree(self.finetuned_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         self.trainer = Trainer(
             self.config, self.finetuned_model, loss_fn, optimizer1, self.config["device"]
             )
