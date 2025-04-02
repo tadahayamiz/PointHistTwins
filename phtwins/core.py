@@ -45,6 +45,8 @@ class PHTwins:
         self.outdir = outdir
         self.pretrained_model = None
         self.finetuned_model = None
+        self.pretrainer = None
+        self.trainer = None
         # fix seed
         g, seed_worker = fix_seed(seed, fix_cuda=True)
         self._seed = {"seed": seed, "g": g, "seed_worker": seed_worker}
@@ -88,11 +90,11 @@ class PHTwins:
             scale_factor=self.config["scale_factor"] # factor to scale the loss by
         )
         optimizer = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
-        trainer = PreTrainer(
+        self.pretrainer = PreTrainer(
             self.config, self.pretrained_model, optimizer, device=self.config["device"]
             )
         # training
-        trainer.train(train_loader, test_loader)
+        self.pretrainer.train(train_loader, test_loader)
         print("> Pretraining is done.")
 
 
@@ -110,11 +112,11 @@ class PHTwins:
         )
         loss_fn = nn.CrossEntropyLoss()
         optimizer = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
-        trainer = Trainer(
+        self.trainer = Trainer(
             self.config, self.finetuned_model, loss_fn, optimizer, self.config["device"]
             )
         # training
-        trainer.train(train_loader, test_loader)
+        self.trainer.train(train_loader, test_loader)
 
 
     # ToDo: implement this
@@ -281,3 +283,33 @@ class PHTwins:
             self.config["frozen"] # whether the pretrained model is frozen
         )
         self.finetuned_model.load_state_dict(torch.load(model_path))
+
+
+    def register_hook(self, event_name, hook_fn, trainer="pretrainer"):
+        """
+        register hook for the model
+
+        Parameters
+        ----------
+        event_name: str
+            the name of the event to register the hook
+
+        hook_fn: function
+            the function to be called when the event occurs
+
+        trainer: str
+            the trainer to register the hook
+            "pretrainer" or "trainer"
+
+        """
+        if trainer == "pretrainer":
+            if self.pretrainer is None:
+                raise ValueError("!! Pretrainer is not initialized !!")
+            self.pretrainer.register_hook(event_name, hook_fn)
+        elif trainer == "trainer":
+            if self.trainer is None:
+                raise ValueError("!! Trainer is not initialized !!")
+            self.trainer.register_hook(event_name, hook_fn)
+        else:
+            raise ValueError("!! trainer should be 'pretrainer' or 'trainer' !!")
+        print(f">> registered hook: {event_name} to {trainer}")
