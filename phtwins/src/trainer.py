@@ -37,6 +37,11 @@ class PreTrainer:
             "early_stop_epoch": None,
             "elapsed_time": None
         }
+        self.hooks = {
+            "on_epoch_end": [],
+            "on_batch_end": [],
+            "on_train_end": []
+        }
 
 
     def train(self, trainloader, testloader):
@@ -56,6 +61,9 @@ class PreTrainer:
                 print(
                     f"Epoch: {i + 1}, Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}"
                     )
+            # call hooks
+            for hook in self.hooks["on_epoch_end"]:
+                hook(epoch=i + 1, train_loss=train_loss, test_loss=test_loss)
             # early stopping
             if self.patience is not None:
                 if test_loss < self.best_loss:
@@ -75,6 +83,9 @@ class PreTrainer:
         elapsed_time = calc_elapsed_time(start_time)
         self.history["elapsed_time"] = elapsed_time
         save_experiment(config=self.config, model=self.model, optimizer=self.optimizer, history=self.history)
+        # call on_train_end hooks
+        for hook in self.hooks["on_train_end"]:
+            hook(elapsed_time=elapsed_time)
 
 
     def train_epoch(self, trainloader):
@@ -125,6 +136,25 @@ class PreTrainer:
         return total_loss / total_samples
 
 
+    def register_hook(self, event_name, hook_fn):
+        """
+        Register a hook to be called at the end of an event.
+
+        Parameters
+        ----------
+        event_name: str
+            name of the event to register the hook for.
+
+        hook_fn: callable
+            function to be called when the event occurs.
+            wandb.register_hook() is a good example.
+        
+        """
+        if event_name not in self.hooks:
+            raise ValueError(f"!! Invalid event: {event_name}. Valid events are: {list(self.hooks.keys())} !!")
+        self.hooks[event_name].append(hook_fn)
+
+
 # ToDo: implement Trainer class
 class Trainer:
     def __init__(self, config, model, loss_fn, optimizer, device):
@@ -158,6 +188,11 @@ class Trainer:
             "early_stop_epoch": None,
             "elapsed_time": None
         }
+        self.hooks = {
+            "on_epoch_end": [],
+            "on_batch_end": [],
+            "on_train_end": []
+        }
 
 
     def train(self, trainloader, testloader):
@@ -179,6 +214,9 @@ class Trainer:
                 print(f"Epoch: {i + 1}")
                 print(f"  Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}")
                 print(f"  Train accuracy: {train_acc:.4f}, Test accuracy: {test_acc:.4f}")
+            # call hooks
+            for hook in self.hooks["on_epoch_end"]:
+                hook(epoch=i + 1, train_loss=train_loss, test_loss=test_loss)
             # early stopping
             if self.patience is not None:
                 if test_loss < self.best_loss:
@@ -198,6 +236,9 @@ class Trainer:
         elapsed_time = calc_elapsed_time(start_time)
         self.history["elapsed_time"] = elapsed_time
         save_experiment(config=self.config, model=self.model, optimizer=self.optimizer, history=self.history)
+        # call on_train_end hooks
+        for hook in self.hooks["on_train_end"]:
+            hook(elapsed_time=elapsed_time)
 
 
     def train_epoch(self, trainloader):
@@ -260,3 +301,22 @@ class Trainer:
                 predictions = torch.argmax(output, dim=1)
                 correct += int((predictions == label).sum())
         return total_loss / total_samples, correct / total_samples
+    
+
+    def register_hook(self, event_name, hook_fn):
+        """
+        Register a hook to be called at the end of an event.
+
+        Parameters
+        ----------
+        event_name: str
+            name of the event to register the hook for.
+
+        hook_fn: callable
+            function to be called when the event occurs.
+            wandb.register_hook() is a good example.
+        
+        """
+        if event_name not in self.hooks:
+            raise ValueError(f"!! Invalid event: {event_name}. Valid events are: {list(self.hooks.keys())} !!")
+        self.hooks[event_name].append(hook_fn)
