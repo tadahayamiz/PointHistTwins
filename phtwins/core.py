@@ -16,6 +16,7 @@ from schedulefree import RAdamScheduleFree
 import numpy as np
 import pandas as pd
 import os, yaml
+import inspect
 from datetime import datetime
 
 from .src.barlow import BarlowTwins, LinearHead
@@ -50,6 +51,8 @@ class PHTwins:
         # fix seed
         g, seed_worker = fix_seed(seed, fix_cuda=True)
         self._seed = {"seed": seed, "g": g, "seed_worker": seed_worker}
+        # prepare model
+        self._prep_model()
 
 
     def _prep_model(self):
@@ -246,18 +249,11 @@ class PHTwins:
                 self.config = yaml.safe_load(f)
             self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
             self.config["config_path"] = config_path
-        self.pretrained_model = BarlowTwins(
-            input_dim=self.config["hist_dim"], # the dimension of the input
-            hidden_hist=self.config["hidden_hist"], # the dimension of the hidden layer
-            dropout_hist=self.config["dropout_hist"], # the dropout rate
-            num_blocks=self.config["num_blocks"], # the number of blocks in the ResNet
-            latent_dim=self.config["latent_dim"], # the dimension of the latent representation
-            hidden_proj=self.config["hidden_proj"], # the dimension of the hidden layer
-            output_proj=self.config["output_proj"], # the dimension of the output layer
-            num_proj=self.config["num_proj"], # the number of the projection MLPs
-            lambd=self.config["lambd"], # tradeoff parameter
-            scale_factor=self.config["scale_factor"] # factor to scale the loss by
-        )
+        # initialize BarlowTwins model
+        model_params = inspect.signature(BarlowTwins.__init__).parameters
+        model_args = {k: self.config[k] for k in model_params if k in self.config}
+        model_args["input_dim"] = self.config["hist_dim"] # hard coded
+        self.pretrained_model = BarlowTwins(**model_args)
         self.pretrained_model.load_state_dict(torch.load(model_path))
 
 
@@ -268,27 +264,16 @@ class PHTwins:
                 self.config = yaml.safe_load(f)
             self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
             self.config["config_path"] = config_path
-        init_bt_model = BarlowTwins(
-            self.config["hist_dim"], # the dimension of the input
-            self.config["hidden_hist"], # the dimension of the hidden layer
-            self.config["dropout_hist"], # the dropout rate
-            self.config["num_blocks"], # the number of blocks in the ResNet
-            self.config["latent_dim"], # the dimension of the latent representation
-            self.config["hidden_proj"], # the dimension of the hidden layer
-            self.config["output_proj"], # the dimension of the output layer
-            self.config["num_proj"], # the number of the projection MLPs
-            self.config["lambd"], # tradeoff parameter
-            self.config["scale_factor"] # factor to scale the loss by
-        )
-        self.finetuned_model = LinearHead(
-            init_bt_model, # initialized model
-            self.config["latent_dim"], # the dimension of the latent representation
-            self.config["num_classes"], # the number of classes
-            self.config["num_layers"], # the number of layers in the MLP
-            self.config["hidden_head"], # the number of hidden units in the MLP
-            self.config["dropout_head"], # the dropout rate
-            self.config["frozen"] # whether the pretrained model is frozen
-        )
+        # initialize BarlowTwins model
+        bt_params = inspect.signature(BarlowTwins.__init__).parameters
+        bt_args = {k: self.config[k] for k in bt_params if k in self.config}
+        bt_args["input_dim"] = self.config["hist_dim"] # hard coded
+        init_bt_model = BarlowTwins(**bt_args)
+        # initialize LinearHead model
+        lh_params = inspect.signature(LinearHead.__init__).parameters
+        lh_args = {k: self.config[k] for k in lh_params if k in self.config}
+        lh_args["pretrained"] = init_bt_model # hard coded
+        self.finetuned_model = LinearHead(**lh_args)
         self.finetuned_model.load_state_dict(torch.load(model_path))
 
 
