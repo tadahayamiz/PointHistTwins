@@ -52,6 +52,46 @@ class PHTwins:
         self._seed = {"seed": seed, "g": g, "seed_worker": seed_worker}
 
 
+    def _prep_model(self):
+        """
+        prepare model
+        hard coded parameters
+        
+        """
+        # prepare pretraining model
+        self.pretrained_model = BarlowTwins(
+            input_dim=self.config["hist_dim"], # the dimension of the input
+            hidden_hist=self.config["hidden_hist"], # the dimension of the hidden layer
+            dropout_hist=self.config["dropout_hist"], # the dropout rate
+            num_blocks=self.config["num_blocks"], # the number of blocks in the ResNet
+            latent_dim=self.config["latent_dim"], # the dimension of the latent representation
+            hidden_proj=self.config["hidden_proj"], # the dimension of the hidden layer
+            output_proj=self.config["output_proj"], # the dimension of the output layer
+            num_proj=self.config["num_proj"], # the number of the projection MLPs
+            lambd=self.config["lambd"], # tradeoff parameter
+            scale_factor=self.config["scale_factor"] # factor to scale the loss by
+        )
+        optimizer0 = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
+        self.pretrainer = PreTrainer(
+            self.config, self.pretrained_model, optimizer0, device=self.config["device"]
+            )
+        # prepare linear head
+        self.finetuned_model = LinearHead(
+            self.pretrained_model, # the pre-trained model
+            self.config["latent_dim"], # the dimension of the latent representation
+            self.config["num_classes"], # the number of classes
+            self.config["num_layers"], # the number of layers in the MLP
+            self.config["hidden_head"], # the number of hidden units in the MLP
+            self.config["dropout_head"], # the dropout rate
+            self.config["frozen"] # whether the pretrained model is frozen
+        )
+        loss_fn = nn.CrossEntropyLoss()
+        optimizer1 = RAdamScheduleFree(self.finetuned_model_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
+        self.trainer = Trainer(
+            self.config, self.finetuned_model, loss_fn, optimizer1, self.config["device"]
+            )
+
+
     def prep_data(self, key_identify:str, key_data:list, key_label:str):
         """ prepare data """
         self.train_dataset = PointHistDataset(
@@ -76,47 +116,14 @@ class PHTwins:
 
     def pretrain(self, train_loader, test_loader):
         """ pretraining """
-        # prepare model
-        self.pretrained_model = BarlowTwins(
-            input_dim=self.config["hist_dim"], # the dimension of the input
-            hidden_hist=self.config["hidden_hist"], # the dimension of the hidden layer
-            dropout_hist=self.config["dropout_hist"], # the dropout rate
-            num_blocks=self.config["num_blocks"], # the number of blocks in the ResNet
-            latent_dim=self.config["latent_dim"], # the dimension of the latent representation
-            hidden_proj=self.config["hidden_proj"], # the dimension of the hidden layer
-            output_proj=self.config["output_proj"], # the dimension of the output layer
-            num_proj=self.config["num_proj"], # the number of the projection MLPs
-            lambd=self.config["lambd"], # tradeoff parameter
-            scale_factor=self.config["scale_factor"] # factor to scale the loss by
-        )
-        optimizer = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
-        self.pretrainer = PreTrainer(
-            self.config, self.pretrained_model, optimizer, device=self.config["device"]
-            )
-        # training
         self.pretrainer.train(train_loader, test_loader)
         print("> Pretraining is done.")
 
 
     def finetune(self, train_loader, test_loader):
         """ finetuning """
-        # prepare model
-        self.finetuned_model = LinearHead(
-            self.pretrained_model, # the pre-trained model
-            self.config["latent_dim"], # the dimension of the latent representation
-            self.config["num_classes"], # the number of classes
-            self.config["num_layers"], # the number of layers in the MLP
-            self.config["hidden_head"], # the number of hidden units in the MLP
-            self.config["dropout_head"], # the dropout rate
-            self.config["frozen"] # whether the pretrained model is frozen
-        )
-        loss_fn = nn.CrossEntropyLoss()
-        optimizer = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
-        self.trainer = Trainer(
-            self.config, self.finetuned_model, loss_fn, optimizer, self.config["device"]
-            )
-        # training
         self.trainer.train(train_loader, test_loader)
+        print("> Finetuning is done.")
 
 
     # ToDo: implement this
@@ -285,7 +292,7 @@ class PHTwins:
         self.finetuned_model.load_state_dict(torch.load(model_path))
 
 
-    def register_hook(self, event_name, hook_fn, trainer="pretrainer"):
+    def register_hook(self, event_name, hook_fn, mode="pretraining"):
         """
         register hook for the model
 
@@ -299,17 +306,17 @@ class PHTwins:
 
         trainer: str
             the trainer to register the hook
-            "pretrainer" or "trainer"
+            "pretraining" or "finetuning"
 
         """
-        if trainer == "pretrainer":
+        if mode == "pretraining":
             if self.pretrainer is None:
                 raise ValueError("!! Pretrainer is not initialized !!")
             self.pretrainer.register_hook(event_name, hook_fn)
-        elif trainer == "trainer":
+        elif mode == "trainer":
             if self.trainer is None:
                 raise ValueError("!! Trainer is not initialized !!")
             self.trainer.register_hook(event_name, hook_fn)
         else:
-            raise ValueError("!! trainer should be 'pretrainer' or 'trainer' !!")
-        print(f">> registered hook: {event_name} to {trainer}")
+            raise ValueError("!! trainer should be 'pretraining' or 'finetuning' !!")
+        print(f">> registered hook: {event_name} to {mode}")
