@@ -74,6 +74,8 @@ class PHTwins:
             lambd=self.config["lambd"], # tradeoff parameter
             scale_factor=self.config["scale_factor"] # factor to scale the loss by
         )
+        for param in self.pretrained_model.parameters():
+            param.requires_grad = True
         optimizer0 = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         self.pretrainer = PreTrainer(
             self.config, self.pretrained_model, optimizer0, device=self.config["device"]
@@ -88,6 +90,8 @@ class PHTwins:
             self.config["dropout_head"], # the dropout rate
             self.config["frozen"] # whether the pretrained model is frozen
         )
+        for param in self.finetuned_model.parameters():
+            param.requires_grad = True
         loss_fn = nn.CrossEntropyLoss()
         optimizer1 = RAdamScheduleFree(self.finetuned_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         self.trainer = Trainer(

@@ -62,8 +62,8 @@ class PreTrainer:
                     f"Epoch: {i + 1}, Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}"
                     )
             # call hooks
-            # for hook in self.hooks["on_epoch_end"]:
-            #     hook(epoch=i + 1, train_loss=train_loss, test_loss=test_loss)
+            for hook in self.hooks["on_epoch_end"]:
+                hook(epoch=i + 1, train_loss=train_loss, test_loss=test_loss)
             # early stopping
             if self.patience is not None:
                 if test_loss < self.best_loss:
