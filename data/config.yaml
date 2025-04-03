@@ -3,7 +3,7 @@
 device: null
 exp_name: null
 # === Data ===
-num_points: 4096
+num_points: 2048
 bins: 64
 num_workers: 4
 pin_memory: True
@@ -12,7 +12,7 @@ latent_dim: 128
 hidden_proj: 512
 output_proj: 128
 num_proj: 2
-lambd: 0.005
+lambd: 0.01
 scale_factor: 1.0
 # === HistEncoder ===
 hist_dim: 2 # this is the same as input_dim

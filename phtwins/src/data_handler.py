@@ -130,7 +130,8 @@ class PointHistDataset(Dataset):
         self.df = df
         self.bins = bins
         self.num_points = num_points
-        if noise is not None:
+        self.noise = noise
+        if noise is None:
             self.noise = 1 / num_points
         self.transform = transform
         # prepare meta data
