@@ -96,7 +96,7 @@ def plot_hist(hist_list, output="", **plot_params):
 class PointHistDataset(Dataset):
     def __init__(
             self, df, key_identify, key_data, key_label, num_points=768, bins=16,
-            transform=None
+            noise=None, transform=None
             ):
         """
         Parameters
@@ -120,6 +120,9 @@ class PointHistDataset(Dataset):
         num_points: int
             the number of points to be sampled
 
+        noise: float
+            the noise to be added to the histogram
+
         transform: callable
             the transform function to be applied to the data
         
@@ -127,6 +130,8 @@ class PointHistDataset(Dataset):
         self.df = df
         self.bins = bins
         self.num_points = num_points
+        if noise is not None:
+            self.noise = 1 / num_points
         self.transform = transform
         # prepare meta data
         self.key_identify = key_identify
@@ -166,6 +171,7 @@ class PointHistDataset(Dataset):
         # prepare histogram
         hist0 = calc_hist(pointcloud0, bins=self.bins) / self.num_points
         hist1 = calc_hist(pointcloud1, bins=self.bins) / self.num_points
+        hist1 = self.add_noise(hist1, self.noise) # add noise to the histogram
         hist0 = torch.tensor(hist0, dtype=torch.float32).unsqueeze(0) # add channel dimension
         hist1 = torch.tensor(hist1, dtype=torch.float32).unsqueeze(0) # add channel dimension
         # prepare label
@@ -190,6 +196,16 @@ class PointHistDataset(Dataset):
             "label": [self.id2label[k] for k in self.idx2id.values()]
             })
         return meta
+
+
+    def add_noise(self, hist, noise=0.001):
+        """
+        add noise to the histogram
+        """
+        noise = np.random.normal(0, noise, hist.shape)
+        noise = np.where(hist > 0, noise, 0.0)
+        hist += noise
+        return np.clip(hist, 0.0, None)
 
 
 def prep_dataloader(
