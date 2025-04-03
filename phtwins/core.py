@@ -121,16 +121,22 @@ class PHTwins:
             return train_loader, test_loader
 
 
-    def pretrain(self, train_loader, test_loader):
+    def pretrain(self, train_loader, test_loader, callbacks:list=None, verbose:bool=True):
         """ pretraining """
+        if callbacks is not None:
+            self.pretrainer.set_callbacks(callbacks)
         self.pretrainer.train(train_loader, test_loader)
-        print("> Pretraining is done.")
+        if verbose:
+            print(">> Pretraining is done.")
 
 
-    def finetune(self, train_loader, test_loader):
+    def finetune(self, train_loader, test_loader, callbacks:list=None, verbose:bool=True):
         """ finetuning """
+        if callbacks is not None:
+            self.trainer.set_callbacks(callbacks)
         self.trainer.train(train_loader, test_loader)
-        print("> Finetuning is done.")
+        if verbose:
+            print(">> Finetuning is done.")
 
 
     # ToDo: implement this
@@ -279,33 +285,3 @@ class PHTwins:
         lh_args["pretrained"] = init_bt_model # hard coded
         self.finetuned_model = LinearHead(**lh_args)
         self.finetuned_model.load_state_dict(torch.load(model_path))
-
-
-    def register_hook(self, event_name, hook_fn, mode="pretraining"):
-        """
-        register hook for the model
-
-        Parameters
-        ----------
-        event_name: str
-            the name of the event to register the hook
-
-        hook_fn: function
-            the function to be called when the event occurs
-
-        trainer: str
-            the trainer to register the hook
-            "pretraining" or "finetuning"
-
-        """
-        if mode == "pretraining":
-            if self.pretrainer is None:
-                raise ValueError("!! Pretrainer is not initialized !!")
-            self.pretrainer.register_hook(event_name, hook_fn)
-        elif mode == "trainer":
-            if self.trainer is None:
-                raise ValueError("!! Trainer is not initialized !!")
-            self.trainer.register_hook(event_name, hook_fn)
-        else:
-            raise ValueError("!! trainer should be 'pretraining' or 'finetuning' !!")
-        print(f">> registered hook: {event_name} to {mode}")

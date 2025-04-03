@@ -7,6 +7,7 @@ trainer
 @author: tadahaya
 """
 import os, time
+from typing import List, Union, Any
 import torch
 from torch.nn.utils import clip_grad_norm_
 
@@ -15,7 +16,7 @@ from .utils import save_experiment, save_checkpoint, calc_elapsed_time
 
 class BaseTrainer:
     def __init__(self):
-        pass
+        self.callbacks: List[Any] = []
 
     def train(self, trainloader, testloader):
         """ train the model """
@@ -28,14 +29,24 @@ class BaseTrainer:
     def evaluate(self, testloader):
         """ evaluate the model """
         raise NotImplementedError
-    
+
+    def set_callbacks(self, callbacks: Union[List[Any], Any]):
+        """
+        Args:
+            callbacks (list, instance): list of callback instances or a single callback instance
+
+        """
+        if not isinstance(callbacks, list):
+            callbacks = [callbacks]
+        self.callbacks.extend(callbacks)
+
     def run_callbacks(self, **kwargs):
         """
         Args:
-            callbacks (list): list of callback functions
+            callbacks (list): list of callback instances
             kwargs (dict): keyword arguments to pass to the callbacks
 
-                    """
+        """
         for callback in self.callbacks:
             callback(**kwargs)
 
