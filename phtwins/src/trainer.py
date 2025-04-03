@@ -14,7 +14,7 @@ from .utils import save_experiment, save_checkpoint, calc_elapsed_time
 
 
 class BaseTrainer:
-    def __init__(self, config, model, optimizer, loss_fn, device, callbacks):
+    def __init__(self):
         pass
 
     def train(self, trainloader, testloader):
