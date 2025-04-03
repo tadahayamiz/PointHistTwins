@@ -84,7 +84,7 @@ class EarlyStopping:
             model (torch.nn.Module): current model
             score (float): current score (loss or accuracy)
         """
-        if self.best_score is None or self.monitor_fxn(score, self.best_score):
+        if self.best_score is None or self._monitor_fxn(score, self.best_score):
             self.best_score = score
             self.counter = 0
             if self.restore_best_model:
