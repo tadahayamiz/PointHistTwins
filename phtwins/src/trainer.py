@@ -275,6 +275,8 @@ class Trainer(BaseTrainer):
         # save the experiment
         elapsed_time = calc_elapsed_time(start_time)
         self.history["elapsed_time"] = elapsed_time
+        self.history["best_score"] = self.early_stopping.best_score if self.early_stopping is not None else None
+        self.history.update(self.logger.get_items())
         save_experiment(config=self.config, model=self.model, optimizer=self.optimizer, history=self.history)
 
 
