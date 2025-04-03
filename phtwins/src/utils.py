@@ -43,12 +43,12 @@ def fix_seed(seed: int=42, fix_cuda: bool=False):
     return g, seed_worker  # for worker_init_fn in DataLoader
 
 
-def save_experiment(config, model, optimizer, history, plot_progress=True):
+def save_experiment(config, model, optimizer, history, outdir, plot_progress=True):
     """
     save the experiment: config, model, metrics, and progress plot
     
     outdir
-    ├── experiment_name
+    ├── experiment_name (resdir)
         ├── config.yaml
         ├── history.json
         ├── progress_loss.tif
@@ -58,7 +58,6 @@ def save_experiment(config, model, optimizer, history, plot_progress=True):
         ├── ...
     
     """
-    outdir = config["outdir"]
     experiment_name = config["exp_name"]
     resdir = os.path.join(outdir, experiment_name)
     os.makedirs(resdir, exist_ok=True)
@@ -71,7 +70,7 @@ def save_experiment(config, model, optimizer, history, plot_progress=True):
     with open(historyfile, 'w') as f:
         json.dump(history, f, sort_keys=True, indent=4)
     # save the model
-    save_checkpoint(model=model, optimizer=optimizer, name="final", outdir=outdir)
+    save_checkpoint(model=model, optimizer=optimizer, name="final", outdir=resdir)
     # plot progress
     if plot_progress:
         progress_plot(

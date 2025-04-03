@@ -1,8 +1,6 @@
 # phtwins config file (yaml)
 # === I/O ===
-config_path: null
 device: null
-outdir: null
 exp_name: null
 # === Data ===
 num_points: 4096

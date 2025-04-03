@@ -30,6 +30,8 @@ class PHTwins:
             self, config_path: str, df: pd.DataFrame=None, test_df:pd.DataFrame=None,
             outdir: str=None, exp_name: str=None, seed: int=42
             ):
+        # arguments
+        assert outdir is not None, "!! Give outdir !!"
         self.df = df # DataFrame containing the point data and label
         self.test_df = test_df # DataFrame containing the point data and label
         self.train_dataset = None
@@ -40,9 +42,7 @@ class PHTwins:
         self.config["config_path"] = config_path
         if exp_name is None:
             exp_name = f"exp-{datetime.today().strftime('%y%m%d')}"
-        self.config["exp_name"] = exp_name
-        if outdir is not None:
-            self.config["outdir"] = outdir
+        self.config["exp_name"] = exp_name            
         self.outdir = outdir
         self.pretrained_model = None
         self.finetuned_model = None
@@ -52,10 +52,10 @@ class PHTwins:
         g, seed_worker = fix_seed(seed, fix_cuda=True)
         self._seed = {"seed": seed, "g": g, "seed_worker": seed_worker}
         # prepare model
-        self._prep_model()
+        self.init_model()
 
 
-    def _prep_model(self):
+    def init_model(self):
         """
         prepare model
         hard coded parameters
@@ -78,7 +78,7 @@ class PHTwins:
             param.requires_grad = True
         optimizer0 = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         self.pretrainer = PreTrainer(
-            self.config, self.pretrained_model, optimizer0, device=self.config["device"]
+            self.config, self.pretrained_model, optimizer0
             )
         # prepare linear head
         self.finetuned_model = LinearHead(
@@ -92,10 +92,10 @@ class PHTwins:
         )
         for param in self.finetuned_model.parameters():
             param.requires_grad = True
-        loss_fn = nn.CrossEntropyLoss()
         optimizer1 = RAdamScheduleFree(self.finetuned_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
+        loss_fn = nn.CrossEntropyLoss() # hard coded
         self.trainer = Trainer(
-            self.config, self.finetuned_model, loss_fn, optimizer1, self.config["device"]
+            self.config, self.finetuned_model, optimizer1, loss_fn
             )
 
 
@@ -151,7 +151,7 @@ class PHTwins:
         probs = []
         with torch.no_grad():
             for data, _ in data_loader:
-                data = data.to(self.config["device"])
+                data = data.to(self.device)
                 output = self.model(data)[0] # ToDo: check this
                 preds.append(output.argmax(dim=1).cpu().numpy())
                 probs.append(output.cpu().numpy())
@@ -176,7 +176,7 @@ class PHTwins:
         with torch.no_grad():
             for i in indices:
                 data, _ = dataset[i]
-                hist0, hist1 = (x.to(self.config["device"]).unsqueeze(0) for x in data)  # add batch dimension
+                hist0, hist1 = (x.to(self.device).unsqueeze(0) for x in data)  # add batch dimension
                 (z1, z2), _ = self.pretrained_model(hist0, hist1)
                 output = (z1 + z2) / 2  # average two features
                 reps.append(output.cpu().numpy().reshape(1, -1))  # del batch dimension
@@ -257,8 +257,6 @@ class PHTwins:
         if config_path is not None:
             with open(config_path, "r") as f:
                 self.config = yaml.safe_load(f)
-            self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
-            self.config["config_path"] = config_path
         # initialize BarlowTwins model
         model_params = inspect.signature(BarlowTwins.__init__).parameters
         model_args = {k: self.config[k] for k in model_params if k in self.config}
@@ -272,8 +270,6 @@ class PHTwins:
         if config_path is not None:
             with open(config_path, "r") as f:
                 self.config = yaml.safe_load(f)
-            self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
-            self.config["config_path"] = config_path
         # initialize BarlowTwins model
         bt_params = inspect.signature(BarlowTwins.__init__).parameters
         bt_args = {k: self.config[k] for k in bt_params if k in self.config}

@@ -110,24 +110,29 @@ class EarlyStopping:
             if self.counter >= self.patience:
                 self.early_stop = True
                 if self.verbose:
-                    print("> EarlyStopping triggered")
+                    print(">> EarlyStopping triggered")
                 if self.restore_best_model and self.best_model_state:
                     model.load_state_dict(self.best_model_state)
 
 
 class PreTrainer(BaseTrainer):
-    def __init__(self, config, model, optimizer, device, callbacks=[]):
+    def __init__(
+            self, config, model, optimizer=None, callbacks=[], outdir:str=""
+            ):
         super().__init__()
+        # arguments
         self.config = config
-        self.model = model.to(device)
+        self.device = config.get(
+            "device", "cuda" if torch.cuda.is_available() else "cpu"
+            )
+        self.model = model.to(self.device)
         self.optimizer = optimizer
-        self.device = device
         self.logger = BaseLogger()
         self.callbacks = callbacks
         self.callbacks.append(self.logger)
+        self.outdir = outdir
         # config contents
         self.exp_name = config["exp_name"]
-        self.outdir = config["outdir"]
         self.save_model_every = config["save_model_every"]
         # I/O
         self.resdir = os.path.join(self.outdir, self.exp_name)
@@ -174,7 +179,9 @@ class PreTrainer(BaseTrainer):
         self.history["elapsed_time"] = elapsed_time
         self.history["best_score"] = self.early_stopping.best_score if self.early_stopping is not None else None
         self.history.update(self.logger.get_items())
-        save_experiment(config=self.config, model=self.model, optimizer=self.optimizer, history=self.history)
+        save_experiment(
+            config=self.config, model=self.model, optimizer=self.optimizer, history=self.history, outdir=self.resdir
+            )
 
 
     def train_epoch(self, trainloader):
@@ -226,19 +233,22 @@ class PreTrainer(BaseTrainer):
 
 
 class Trainer(BaseTrainer):
-    def __init__(self, config, model, loss_fn, optimizer, device, callbacks=[]):
+    def __init__(self, config, model, optimizer=None, loss_fn=None, callbacks=[], outdir=""):
         super().__init__()
+        # arguments
         self.config = config
-        self.model = model.to(device)
-        self.loss_fn = loss_fn
+        self.device = config.get(
+            "device", "cuda" if torch.cuda.is_available() else "cpu"
+            )
+        self.model = model.to(self.device)
         self.optimizer = optimizer
-        self.device = device
+        self.loss_fn = loss_fn
         self.logger = BaseLogger()
         self.callbacks = callbacks
         self.callbacks.append(self.logger)
+        self.outdir = outdir
         # config contents
         self.exp_name = config["exp_name"]
-        self.outdir = config["outdir"]
         self.save_model_every = config["save_model_every"]
         if config["frozen"]:
             self.use_pretrain_loss = False # if the model is frozen, pretrain loss is never used
@@ -292,7 +302,9 @@ class Trainer(BaseTrainer):
         self.history["elapsed_time"] = elapsed_time
         self.history["best_score"] = self.early_stopping.best_score if self.early_stopping is not None else None
         self.history.update(self.logger.get_items())
-        save_experiment(config=self.config, model=self.model, optimizer=self.optimizer, history=self.history)
+        save_experiment(
+            config=self.config, model=self.model, optimizer=self.optimizer, history=self.history, outdir=self.resdir
+            )
 
 
     def train_epoch(self, trainloader):
