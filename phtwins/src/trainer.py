@@ -108,7 +108,7 @@ class PreTrainer(BaseTrainer):
         self.optimizer = optimizer
         self.device = device
         self.logger = BaseLogger()
-        self.callback = callbacks
+        self.callbacks = callbacks
         self.callbacks.append(self.logger)
         # config contents
         self.exp_name = config["exp_name"]
@@ -218,7 +218,9 @@ class Trainer(BaseTrainer):
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.device = device
-
+        self.logger = BaseLogger()
+        self.callbacks = callbacks
+        self.callbacks.append(self.logger)
         # config contents
         self.exp_name = config["exp_name"]
         self.outdir = config["outdir"]
