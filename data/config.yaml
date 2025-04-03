@@ -38,3 +38,4 @@ accum_grad: 4
 clip_grad: 1.0
 save_model_every: 200
 patience: 50
+early_stop_mode: 'min'

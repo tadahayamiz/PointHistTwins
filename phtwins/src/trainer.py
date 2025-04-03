@@ -12,12 +12,103 @@ from torch.nn.utils import clip_grad_norm_
 
 from .utils import save_experiment, save_checkpoint, calc_elapsed_time
 
-class PreTrainer:
-    def __init__(self, config, model, optimizer, device):
+
+class BaseTrainer:
+    def __init__(self, config, model, optimizer, loss_fn, device, callbacks):
+        pass
+
+    def train(self, trainloader, testloader):
+        """ train the model """
+        raise NotImplementedError
+    
+    def train_epoch(self, trainloader):
+        """ train the model for one epoch """
+        raise NotImplementedError
+
+    def evaluate(self, testloader):
+        """ evaluate the model """
+        raise NotImplementedError
+    
+    def run_callbacks(self, **kwargs):
+        """
+        Args:
+            callbacks (list): list of callback functions
+            kwargs (dict): keyword arguments to pass to the callbacks
+
+                    """
+        for callback in self.callbacks:
+            callback(**kwargs)
+
+class BaseLogger:
+    def __init__(self):
+        self.items = []
+
+    def __call__(self, **kwargs):
+        """ Args: kwargs (dict): keyword arguments """
+        self.items.append(kwargs)
+
+    def get_items(self):
+        """ get items as a dict """
+        items = {}
+        for item in self.items:
+            for k, v in item.items():
+                if k not in items:
+                    items[k] = []
+                items[k].append(v)
+        return items
+
+
+class EarlyStopping:
+    def __init__(self, patience=10, mode="min", restore_best_model=True, verbose=True):
+        """
+        Args:
+            patience (int): epoch for which the monitored value is not improved
+            mode (str): "min" or "max" (loss or accuracy)
+            restore_best_model (bool): restore the best model
+        """
+        self.patience = patience
+        self.restore_best_model = restore_best_model
+        self.verbose = verbose
+        self.best_score = None
+        self.counter = 0
+        self.early_stop = False
+        self.best_model_state = None
+        self._monitor_fxn = {
+            "min": lambda a, b: a < b,
+            "max": lambda a, b: a > b
+        }[mode]
+
+    def __call__(self, model, score):
+        """
+        Args:
+            model (torch.nn.Module): current model
+            score (float): current score (loss or accuracy)
+        """
+        if self.best_score is None or self.monitor_fxn(score, self.best_score):
+            self.best_score = score
+            self.counter = 0
+            if self.restore_best_model:
+                self.best_model_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+                # store the best model state on CPU
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+                if self.verbose:
+                    print("> EarlyStopping triggered")
+                if self.restore_best_model and self.best_model_state:
+                    model.load_state_dict(self.best_model_state)
+
+
+class PreTrainer(BaseTrainer):
+    def __init__(self, config, model, optimizer, device, callbacks=[]):
+        super().__init__()
         self.config = config
         self.model = model.to(device)
         self.optimizer = optimizer
         self.device = device
+        self.logger = BaseLogger()
+        self.callbacks.append(self.logger)
         # config contents
         self.exp_name = config["exp_name"]
         self.outdir = config["outdir"]
@@ -26,21 +117,14 @@ class PreTrainer:
         self.resdir = os.path.join(self.outdir, self.exp_name)
         os.makedirs(self.resdir, exist_ok=True)
         # early stopping
-        self.patience = config["patience"]
-        self.best_loss = float("inf")
-        self.early_stop_count = 0
-        self.best_model_path = os.path.join(self.resdir, "model_best.pth")
+        self.early_stopping = None
+        if (config["patience"] > 0) & (config["patience"] is not None):
+            self.early_stopping = EarlyStopping(patience=config["patience"], mode="min")
         # loggings
         self.history = {
-            "train_loss": [],
-            "test_loss": [],
+            "best_score": None,
             "early_stop_epoch": None,
             "elapsed_time": None
-        }
-        self.hooks = {
-            "on_epoch_end": [],
-            "on_batch_end": [],
-            "on_train_end": []
         }
 
 
@@ -55,26 +139,16 @@ class PreTrainer:
             train_loss = self.train_epoch(trainloader)
             test_loss = self.evaluate(testloader)
             # logging
-            self.history["train_loss"].append(train_loss)
-            self.history["test_loss"].append(test_loss)
+            self.run_callbacks(epoch=i + 1, train_loss=train_loss, test_loss=test_loss)
             if (i + 1) % 10 == 0:
                 print(
                     f"Epoch: {i + 1}, Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}"
                     )
-            # call hooks
-            for hook in self.hooks["on_epoch_end"]:
-                hook(epoch=i + 1, train_loss=train_loss, test_loss=test_loss)
             # early stopping
-            if self.patience is not None:
-                if test_loss < self.best_loss:
-                    self.best_loss = test_loss
-                    self.early_stop_count = 0
-                    torch.save(self.model.state_dict(), self.best_model_path)
-                else:
-                    self.early_stop_count += 1
-                if self.early_stop_count >= self.patience:
-                    print("> Early stopping")
-                    self.history["early_stop_epoch"] = i + 1
+            if self.early_stopping is not None:
+                self.early_stopping(self.model, test_loss)
+                if self.early_stopping.early_stop:
+                    self.history["early_stop_epoch"] = i + 1 # record the epoch
                     break
             # save the model
             if self.save_model_every > 0 and (i + 1) % self.save_model_every == 0:
@@ -82,10 +156,9 @@ class PreTrainer:
         # save the experiment
         elapsed_time = calc_elapsed_time(start_time)
         self.history["elapsed_time"] = elapsed_time
+        self.history["best_score"] = self.early_stopping.best_score if self.early_stopping is not None else None
+        self.history.update(self.logger.get_items())
         save_experiment(config=self.config, model=self.model, optimizer=self.optimizer, history=self.history)
-        # call on_train_end hooks
-        for hook in self.hooks["on_train_end"]:
-            hook(elapsed_time=elapsed_time)
 
 
     def train_epoch(self, trainloader):
@@ -111,7 +184,7 @@ class PreTrainer:
             # update the parameters
             if (i + 1) % self.config["accum_grad"] == 0 or (i + 1) == len(trainloader):
                 self.optimizer.step()  # Perform the parameter update
-                self.optimizer.zero_grad()  # Reset gradients for the next accumulation            # Loss accumulation
+                self.optimizer.zero_grad()  # Reset gradients for the next accumulation
             batch_size = hist0.shape[0]
             total_loss += loss.detach().item() * batch_size
             total_samples += batch_size
@@ -136,32 +209,15 @@ class PreTrainer:
         return total_loss / total_samples
 
 
-    def register_hook(self, event_name, hook_fn):
-        """
-        Register a hook to be called at the end of an event.
-
-        Parameters
-        ----------
-        event_name: str
-            name of the event to register the hook for.
-
-        hook_fn: callable
-            function to be called when the event occurs.
-            wandb.register_hook() is a good example.
-        
-        """
-        if event_name not in self.hooks:
-            raise ValueError(f"!! Invalid event: {event_name}. Valid events are: {list(self.hooks.keys())} !!")
-        self.hooks[event_name].append(hook_fn)
-
-
-class Trainer:
-    def __init__(self, config, model, loss_fn, optimizer, device):
+class Trainer(BaseTrainer):
+    def __init__(self, config, model, loss_fn, optimizer, device, callbacks=[]):
+        super().__init__()
         self.config = config
         self.model = model.to(device)
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.device = device
+
         # config contents
         self.exp_name = config["exp_name"]
         self.outdir = config["outdir"]
@@ -174,23 +230,14 @@ class Trainer:
         self.resdir = os.path.join(self.outdir, self.exp_name)
         os.makedirs(self.resdir, exist_ok=True)
         # early stopping
-        self.patience = config["patience"]
-        self.best_loss = float("inf")
-        self.early_stop_count = 0
-        self.best_model_path = os.path.join(self.resdir, "model_best.pth")
+        self.early_stopping = None
+        if (config["patience"] > 0) & (config["patience"] is not None):
+            self.early_stopping = EarlyStopping(patience=config["patience"], mode="min")
         # loggings
         self.history = {
-            "train_loss": [],
-            "train_accuracy": [],
-            "test_loss": [],
-            "test_accuracy": [],
+            "best_score": None,
             "early_stop_epoch": None,
             "elapsed_time": None
-        }
-        self.hooks = {
-            "on_epoch_end": [],
-            "on_batch_end": [],
-            "on_train_end": []
         }
 
 
@@ -205,28 +252,19 @@ class Trainer:
             train_loss, train_acc = self.train_epoch(trainloader)
             test_loss, test_acc = self.evaluate(testloader)
             # logging
-            self.history["train_loss"].append(train_loss)
-            self.history["train_accuracy"].append(train_acc)
-            self.history["test_loss"].append(test_loss)
-            self.history["test_accuracy"].append(test_acc)
+            self.run_callbacks(
+                epoch=i + 1, train_loss=train_loss, test_loss=test_loss, 
+                train_accuracy=train_acc, test_accuracy=test_acc
+                )
             if (i + 1) % 10 == 0:
                 print(f"Epoch: {i + 1}")
                 print(f"  Train loss: {train_loss:.4f}, Test loss: {test_loss:.4f}")
                 print(f"  Train accuracy: {train_acc:.4f}, Test accuracy: {test_acc:.4f}")
-            # call hooks
-            for hook in self.hooks["on_epoch_end"]:
-                hook(epoch=i + 1, train_loss=train_loss, test_loss=test_loss)
             # early stopping
-            if self.patience is not None:
-                if test_loss < self.best_loss:
-                    self.best_loss = test_loss
-                    self.early_stop_count = 0
-                    torch.save(self.model.state_dict(), self.best_model_path)
-                else:
-                    self.early_stop_count += 1
-                if self.early_stop_count >= self.patience:
-                    print("> Early stopping")
-                    self.history["early_stop_epoch"] = i + 1
+            if self.early_stopping is not None:
+                self.early_stopping(self.model, test_loss)
+                if self.early_stopping.early_stop:
+                    self.history["early_stop_epoch"] = i + 1 # record the epoch
                     break
             # save the model
             if self.save_model_every > 0 and (i + 1) % self.save_model_every == 0:
@@ -235,9 +273,6 @@ class Trainer:
         elapsed_time = calc_elapsed_time(start_time)
         self.history["elapsed_time"] = elapsed_time
         save_experiment(config=self.config, model=self.model, optimizer=self.optimizer, history=self.history)
-        # call on_train_end hooks
-        for hook in self.hooks["on_train_end"]:
-            hook(elapsed_time=elapsed_time)
 
 
     def train_epoch(self, trainloader):
@@ -300,22 +335,3 @@ class Trainer:
                 predictions = torch.argmax(output, dim=1)
                 correct += int((predictions == label).sum())
         return total_loss / total_samples, correct / total_samples
-    
-
-    def register_hook(self, event_name, hook_fn):
-        """
-        Register a hook to be called at the end of an event.
-
-        Parameters
-        ----------
-        event_name: str
-            name of the event to register the hook for.
-
-        hook_fn: callable
-            function to be called when the event occurs.
-            wandb.register_hook() is a good example.
-        
-        """
-        if event_name not in self.hooks:
-            raise ValueError(f"!! Invalid event: {event_name}. Valid events are: {list(self.hooks.keys())} !!")
-        self.hooks[event_name].append(hook_fn)
