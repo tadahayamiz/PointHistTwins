@@ -38,8 +38,8 @@ class PHTwins:
         self.test_dataset = None
         with open(config_path, "r") as f:
             self.config = yaml.safe_load(f)
-        self.config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
-        self.config["config_path"] = config_path
+        self.device = self.config.get("device", "cuda" if torch.cuda.is_available() else "cpu")
+        self.config_path = config_path
         if exp_name is None:
             exp_name = f"exp-{datetime.today().strftime('%y%m%d')}"
         self.config["exp_name"] = exp_name            
