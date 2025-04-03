@@ -108,6 +108,7 @@ class PreTrainer(BaseTrainer):
         self.optimizer = optimizer
         self.device = device
         self.logger = BaseLogger()
+        self.callback = callbacks
         self.callbacks.append(self.logger)
         # config contents
         self.exp_name = config["exp_name"]
