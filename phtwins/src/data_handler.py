@@ -164,8 +164,8 @@ class PointHistDataset(Dataset):
             pointcloud0 = self.transform(pointcloud0)
             pointcloud1 = self.transform(pointcloud1)
         # prepare histogram
-        hist0 = calc_hist(pointcloud0, bins=self.bins, scaling_factor=self.scaling_factor) / self.num_points
-        hist1 = calc_hist(pointcloud1, bins=self.bins, scaling_factor=self.scaling_factor) / self.num_points
+        hist0 = calc_hist(pointcloud0, bins=self.bins) / self.num_points
+        hist1 = calc_hist(pointcloud1, bins=self.bins) / self.num_points
         hist0 = torch.tensor(hist0, dtype=torch.float32).unsqueeze(0) # add channel dimension
         hist1 = torch.tensor(hist1, dtype=torch.float32).unsqueeze(0) # add channel dimension
         # prepare label
