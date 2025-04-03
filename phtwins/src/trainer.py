@@ -38,7 +38,11 @@ class BaseTrainer:
         """
         if not isinstance(callbacks, list):
             callbacks = [callbacks]
-        self.callbacks.extend(callbacks)
+        for callback in callbacks:
+            if not callable(callback):
+                raise ValueError("!! Callbacks must be callable instances. !!")
+            else:
+                self.callbacks.append(callback)
 
     def run_callbacks(self, **kwargs):
         """
