@@ -13,20 +13,20 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-def calc_hist(X, bins=16, scaling_factor=10000) -> np.ndarray:
+def calc_hist(X, bins=16) -> np.ndarray:
     try:
         s = X.shape[1]
     except IndexError:
         s = 1
     if s == 1:
-        hist, _ = np.histogram(X, bins=bins, density=True)
+        hist, _ = np.histogram(X, bins=bins, density=False)
     elif s == 2:
-        hist, _, _ = np.histogram2d(X[:, 0], X[:, 1], bins=bins, density=True)
+        hist, _, _ = np.histogram2d(X[:, 0], X[:, 1], bins=bins, density=False)
     elif s == 3:
-        hist, _ = np.histogramdd(X, bins=bins, density=True)
+        hist, _ = np.histogramdd(X, bins=bins, density=False)
     else:
         raise ValueError("!! Input array must be 1D, 2D, or 3D. !!")
-    return hist * scaling_factor # scale up for better visualization
+    return hist
 
 
 def plot_hist(hist_list, output="", **plot_params):
@@ -96,7 +96,7 @@ def plot_hist(hist_list, output="", **plot_params):
 class PointHistDataset(Dataset):
     def __init__(
             self, df, key_identify, key_data, key_label, num_points=768, bins=16,
-            scaling_factor=10000, transform=None
+            transform=None
             ):
         """
         Parameters
@@ -120,9 +120,6 @@ class PointHistDataset(Dataset):
         num_points: int
             the number of points to be sampled
 
-        scaling_factor: int
-            the scaling factor for the histogram
-
         transform: callable
             the transform function to be applied to the data
         
@@ -130,7 +127,6 @@ class PointHistDataset(Dataset):
         self.df = df
         self.bins = bins
         self.num_points = num_points
-        self.scaling_factor = scaling_factor
         self.transform = transform
         # prepare meta data
         self.key_identify = key_identify
@@ -168,8 +164,8 @@ class PointHistDataset(Dataset):
             pointcloud0 = self.transform(pointcloud0)
             pointcloud1 = self.transform(pointcloud1)
         # prepare histogram
-        hist0 = calc_hist(pointcloud0, bins=self.bins, scaling_factor=self.scaling_factor)
-        hist1 = calc_hist(pointcloud1, bins=self.bins, scaling_factor=self.scaling_factor)
+        hist0 = calc_hist(pointcloud0, bins=self.bins, scaling_factor=self.scaling_factor) / self.num_points
+        hist1 = calc_hist(pointcloud1, bins=self.bins, scaling_factor=self.scaling_factor) / self.num_points
         hist0 = torch.tensor(hist0, dtype=torch.float32).unsqueeze(0) # add channel dimension
         hist1 = torch.tensor(hist1, dtype=torch.float32).unsqueeze(0) # add channel dimension
         # prepare label
