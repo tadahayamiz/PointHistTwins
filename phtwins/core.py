@@ -78,7 +78,7 @@ class PHTwins:
             param.requires_grad = True
         optimizer0 = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         self.pretrainer = PreTrainer(
-            self.config, self.pretrained_model, optimizer0
+            self.config, self.pretrained_model, optimizer0, outdir=self.outdir
             )
         # prepare linear head
         self.finetuned_model = LinearHead(
@@ -95,7 +95,7 @@ class PHTwins:
         optimizer1 = RAdamScheduleFree(self.finetuned_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         loss_fn = nn.CrossEntropyLoss() # hard coded
         self.trainer = Trainer(
-            self.config, self.finetuned_model, optimizer1, loss_fn
+            self.config, self.finetuned_model, optimizer1, loss_fn, outdir=self.outdir
             )
 
 
