@@ -34,6 +34,6 @@ epochs: 2000
 lr: 0.01
 accum_grad: 4
 clip_grad: 1.0
-save_model_every: 200
-patience: 50
+save_model_every: 50
+patience: 20
 early_stop_mode: 'min'
