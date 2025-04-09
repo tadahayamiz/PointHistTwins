@@ -44,10 +44,12 @@ class PHTwins:
             exp_name = f"exp-{datetime.today().strftime('%y%m%d')}"
         self.config["exp_name"] = exp_name            
         self.outdir = outdir
+        # initialize
         self.pretrained_model = None
         self.finetuned_model = None
         self.pretrainer = None
         self.trainer = None
+        self.optimizer = {"pretraining": None, "finetuning": None}
         # fix seed
         g, seed_worker = fix_seed(seed, fix_cuda=True)
         self._seed = {"seed": seed, "g": g, "seed_worker": seed_worker}
@@ -55,10 +57,16 @@ class PHTwins:
         self.init_model()
 
 
-    def init_model(self):
+    def init_model(self, optimizer=None):
         """
         prepare model
         hard coded parameters
+
+        Parameters
+        ----------
+        optimizer: dict
+            the optimizer for pretraining and finetuning
+            if None, use default optimizer (RAdamScheduleFree)
         
         """
         # prepare pretraining model
@@ -76,7 +84,10 @@ class PHTwins:
         )
         for param in self.pretrained_model.parameters():
             param.requires_grad = True
-        optimizer0 = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
+        if optimizer["pretraining"] is not None:
+            optimizer0 = optimizer["pretraining"]
+        else:
+            optimizer0 = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         self.pretrainer = PreTrainer(
             self.config, self.pretrained_model, optimizer0, outdir=self.outdir
             )
@@ -92,7 +103,10 @@ class PHTwins:
         )
         for param in self.finetuned_model.parameters():
             param.requires_grad = True
-        optimizer1 = RAdamScheduleFree(self.finetuned_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
+        if optimizer["finetuning"] is not None:
+            optimizer1 = optimizer["finetuning"]
+        else:
+            optimizer1 = RAdamScheduleFree(self.finetuned_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         loss_fn = nn.CrossEntropyLoss() # hard coded
         self.trainer = Trainer(
             self.config, self.finetuned_model, optimizer1, loss_fn, outdir=self.outdir
@@ -262,7 +276,12 @@ class PHTwins:
         model_args = {k: self.config[k] for k in model_params if k in self.config}
         model_args["input_dim"] = self.config["hist_dim"] # hard coded
         self.pretrained_model = BarlowTwins(**model_args)
-        self.pretrained_model.load_state_dict(torch.load(model_path))
+        # load model
+        checkpoint = torch.load(model_path)
+        if "model" in checkpoint:
+            self.pretrained_model.load_state_dict(checkpoint["model"])
+        if "optimizer" in checkpoint:
+            self.optimizer["pretraining"].load_state_dict(checkpoint["optimizer"])
 
 
     def load_finetuned(self, model_path: str, config_path: str=None):
@@ -280,4 +299,9 @@ class PHTwins:
         lh_args = {k: self.config[k] for k in lh_params if k in self.config}
         lh_args["pretrained"] = init_bt_model # hard coded
         self.finetuned_model = LinearHead(**lh_args)
-        self.finetuned_model.load_state_dict(torch.load(model_path))
+        # load model
+        checkpoint = torch.load(model_path)
+        if "model" in checkpoint:
+            self.finetuned_model.load_state_dict(checkpoint["model"])
+        if "optimizer" in checkpoint:
+            self.optimizer["finetuning"].load_state_dict(checkpoint["optimizer"])

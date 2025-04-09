@@ -54,6 +54,7 @@ class BaseTrainer:
         for callback in self.callbacks:
             callback(**kwargs)
 
+
 class BaseLogger:
     def __init__(self):
         self.items = []
