@@ -57,16 +57,10 @@ class PHTwins:
         self.init_model()
 
 
-    def init_model(self, optimizer=None):
+    def init_model(self):
         """
         prepare model
         hard coded parameters
-
-        Parameters
-        ----------
-        optimizer: dict
-            the optimizer for pretraining and finetuning
-            if None, use default optimizer (RAdamScheduleFree)
         
         """
         # prepare pretraining model
@@ -84,13 +78,11 @@ class PHTwins:
         )
         for param in self.pretrained_model.parameters():
             param.requires_grad = True
-        if optimizer["pretraining"] is not None:
-            optimizer0 = optimizer["pretraining"]
-        else:
-            optimizer0 = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
+        optimizer0 = RAdamScheduleFree(self.pretrained_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         self.pretrainer = PreTrainer(
             self.config, self.pretrained_model, optimizer0, outdir=self.outdir
             )
+        self.optimizer["pretraining"] = optimizer0
         # prepare linear head
         self.finetuned_model = LinearHead(
             self.pretrained_model, # the pre-trained model
@@ -103,14 +95,12 @@ class PHTwins:
         )
         for param in self.finetuned_model.parameters():
             param.requires_grad = True
-        if optimizer["finetuning"] is not None:
-            optimizer1 = optimizer["finetuning"]
-        else:
-            optimizer1 = RAdamScheduleFree(self.finetuned_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
+        optimizer1 = RAdamScheduleFree(self.finetuned_model.parameters(), lr=float(self.config["lr"]), betas=(0.9, 0.999))
         loss_fn = nn.CrossEntropyLoss() # hard coded
         self.trainer = Trainer(
             self.config, self.finetuned_model, optimizer1, loss_fn, outdir=self.outdir
             )
+        self.optimizer["finetuning"] = optimizer1
 
 
     def prep_data(self, key_identify:str, key_data:list, key_label:str):
