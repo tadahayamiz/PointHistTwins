@@ -58,23 +58,21 @@ def save_experiment(config, model, optimizer, history, outdir, plot_progress=Tru
         ├── ...
     
     """
-    experiment_name = config["exp_name"]
-    resdir = os.path.join(outdir, experiment_name)
-    os.makedirs(resdir, exist_ok=True)
+    os.makedirs(outdir, exist_ok=True)
     # save config
-    configfile = os.path.join(resdir, 'config.yaml')
+    configfile = os.path.join(outdir, 'config.yaml')
     with open(configfile, 'w') as f:
         yaml.dump(config, f, default_flow_style=False) 
     # save history
-    historyfile = os.path.join(resdir, 'history.json')
+    historyfile = os.path.join(outdir, 'history.json')
     with open(historyfile, 'w') as f:
         json.dump(history, f, sort_keys=True, indent=4)
     # save the model
-    save_checkpoint(model=model, optimizer=optimizer, name="final", outdir=resdir)
+    save_checkpoint(model=model, optimizer=optimizer, name="best", outdir=outdir)
     # plot progress
     if plot_progress:
         progress_plot(
-            outdir=resdir,
+            outdir=outdir,
             train_values=history["train_loss"],
             test_values=history["test_loss"]
         )
