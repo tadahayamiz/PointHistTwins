@@ -37,3 +37,5 @@ clip_grad: 1.0
 save_model_every: 50
 patience: 20
 early_stop_mode: 'min'
+# === Logging ===
+log_every: 2
